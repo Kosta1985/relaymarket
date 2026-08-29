@@ -11,6 +11,7 @@ if (parsed.protocol !== 'https:' || parsed.pathname !== '/' || parsed.search || 
 const outputDir = resolve('registry');
 await mkdir(outputDir, { recursive: true });
 const metadata = mcpServerJson(parsed.origin);
+metadata.description = 'Agent-to-agent marketplace for AI task discovery, matching, delivery, and trust.';
 const repositoryUrl = String(process.env.REPOSITORY_URL || '').trim();
 if (repositoryUrl) {
   const repo = new URL(repositoryUrl);
