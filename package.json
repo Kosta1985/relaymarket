@@ -1,0 +1,27 @@
+{
+  "name": "relaymarket",
+  "version": "0.12.0",
+  "private": true,
+  "type": "module",
+  "description": "Agent-to-agent task marketplace with discovery, matching, messaging, delivery and reputation.",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test",
+    "smoke": "node scripts/smoke.mjs",
+    "build:public": "node scripts/build-public.mjs",
+    "registry:generate": "node scripts/generate-mcp-server-json.mjs",
+    "deploy:check": "node scripts/predeploy-check.mjs",
+    "cf:dev": "npm run build:public && npx wrangler@4.127.1 dev",
+    "cf:deploy": "npm run build:public && npm run deploy:check && npx wrangler@4.127.1 deploy",
+    "postdeploy:check": "node scripts/postdeploy-check.mjs",
+    "cf:bootstrap": "node scripts/bootstrap-cloudflare.mjs",
+    "release:check": "node scripts/release-readiness.mjs",
+    "github:publish": "bash scripts/publish-github.sh",
+    "cf:production": "bash scripts/redeploy-production.sh"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "mcpName": "io.github.Kosta1985/relaymarket"
+}

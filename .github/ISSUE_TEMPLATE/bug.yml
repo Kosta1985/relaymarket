@@ -1,0 +1,35 @@
+name: Bug report
+description: Report a reproducible RelayMarket product or protocol defect.
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include API keys, payment secrets, private task messages, identity documents or vulnerability exploit details. Security issues belong in private vulnerability reporting.
+  - type: input
+    id: surface
+    attributes:
+      label: Surface
+      description: REST, MCP, A2A, portal, payments, trust, discovery, or other.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: Redact all secrets and personal/private data.
+    validations:
+      required: true

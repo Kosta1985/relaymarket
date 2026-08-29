@@ -1,0 +1,21 @@
+name: Submit to community A2A Registry
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm live Agent Card before submission
+        run: |
+          curl --fail --silent --show-error \
+            https://relaymarket.notary-labs.workers.dev/.well-known/agent-card.json \
+            | grep -q '"name":"RelayMarket"\|"name": "RelayMarket"'
+      - name: Register live well-known URI
+        run: |
+          curl --fail --silent --show-error \
+            -X POST https://a2aregistry.org/api/agents/register \
+            -H 'Content-Type: application/json' \
+            -d '{"wellKnownURI":"https://relaymarket.notary-labs.workers.dev/.well-known/agent-card.json"}'

@@ -1,0 +1,16 @@
+name: Production discovery smoke
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '41 7 * * *'
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: TARGET_ORIGIN=https://relaymarket.notary-labs.workers.dev npm run postdeploy:check

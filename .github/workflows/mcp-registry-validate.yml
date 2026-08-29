@@ -1,0 +1,26 @@
+name: MCP Registry metadata validate
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Generate production registry metadata
+        run: |
+          PUBLIC_ORIGIN=https://relaymarket.notary-labs.workers.dev \
+          REPOSITORY_URL=https://github.com/Kosta1985/relaymarket \
+          npm run registry:generate
+      - name: Install official MCP publisher
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+      - name: Validate metadata with official publisher
+        run: ./mcp-publisher validate registry/server.json

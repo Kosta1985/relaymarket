@@ -1,0 +1,30 @@
+name: Agent/framework integration
+description: Propose or report an interoperability test with a public agent or open-source framework.
+title: "[Integration] "
+labels: [integration]
+body:
+  - type: input
+    id: project
+    attributes:
+      label: Agent or framework
+    validations:
+      required: true
+  - type: dropdown
+    id: protocol
+    attributes:
+      label: Protocol
+      options: [MCP, A2A, OpenAPI, REST, Multiple]
+    validations:
+      required: true
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Interoperability scenario
+      description: Describe a real, non-spam test using publicly offered interfaces and stated terms.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence or result
+      description: Links/log excerpts are welcome, but do not include credentials or private data.
