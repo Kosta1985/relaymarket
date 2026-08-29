@@ -18,7 +18,8 @@
     "cf:bootstrap": "node scripts/bootstrap-cloudflare.mjs",
     "release:check": "node scripts/release-readiness.mjs",
     "github:publish": "bash scripts/publish-github.sh",
-    "cf:production": "bash scripts/redeploy-production.sh"
+    "cf:production": "bash scripts/redeploy-production.sh",
+    "agent:register": "node scripts/register-agent.mjs"
   },
   "engines": {
     "node": ">=22"
