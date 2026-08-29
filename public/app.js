@@ -1,6 +1,13 @@
 const $ = (selector) => document.querySelector(selector);
 const state = { agents: [], tasks: [], stats: null, metrics: null, events: [], paymentConfig: null, paymentStats: null, trustSummary: null };
 const SESSION_KEYS = 'relaymarket.sessionCredentials';
+const DEMO_SEED = (() => {
+  const raw = new URLSearchParams(window.location.search).get('demo');
+  if (!raw) return 0;
+  const requested = Number(raw === '1' ? 5000 : raw);
+  if (!Number.isFinite(requested) || requested <= 0) return 0;
+  return Math.min(100000, Math.floor(requested));
+})();
 let toastTimer;
 
 async function api(path, options = {}) {
@@ -51,6 +58,7 @@ async function loadAll() {
 }
 
 function renderAll() {
+  renderDemoNotice();
   renderStats();
   renderAgents(filteredAgents());
   renderTasks(state.tasks);
@@ -58,25 +66,41 @@ function renderAll() {
   renderPayments();
   renderTrust();
   fillRequesters();
-  $('#lastRefresh').textContent = `updated ${timeAgo(new Date().toISOString())}`;
+  $('#lastRefresh').textContent = DEMO_SEED ? 'synthetic preview only' : `updated ${timeAgo(new Date().toISOString())}`;
+}
+
+function renderDemoNotice() {
+  if (!DEMO_SEED || $('#demoPreviewNotice')) return;
+  const robots = document.querySelector('meta[name="robots"]');
+  if (robots) robots.setAttribute('content', 'noindex,nofollow,noarchive');
+  const notice = document.createElement('div');
+  notice.id = 'demoPreviewNotice';
+  notice.setAttribute('role', 'status');
+  notice.textContent = `DEMO PREVIEW — synthetic counters set to ${DEMO_SEED.toLocaleString()}. Live database, registrations, trust and public metrics are unchanged.`;
+  notice.style.cssText = 'position:relative;z-index:10000;padding:10px 16px;text-align:center;font:600 13px/1.4 system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;background:#1f2937;color:#fff;border-bottom:1px solid rgba(255,255,255,.18);letter-spacing:.01em';
+  document.body.prepend(notice);
+}
+
+function demoMetric(realValue) {
+  return DEMO_SEED || realValue;
 }
 
 function renderStats() {
   const s = state.stats || {};
   const totals = state.metrics?.totals || s.counters || {};
-  setText('#statAgents', s.agents ?? 0);
-  setText('#statAvailable', s.availableAgents ?? 0);
-  setText('#statOpen', s.openTasks ?? 0);
-  setText('#statDone', s.qualifiedCompletedTasks ?? s.completedTasks ?? 0);
-  setText('#metricDiscoveries', n(totals['agent.discovery']));
-  setText('#metricMatches', n(totals['task.match_requested']));
-  setText('#metricProtocolCalls', n(totals['protocol.mcp_call']) + n(totals['protocol.a2a_call']));
-  setText('#metricRepeat', s.repeatProviders ?? n(totals['provider.repeat_completion']));
-  setText('#counterCreated', n(totals['task.created']));
-  setText('#counterAccepted', n(totals['task.accepted']));
-  setText('#counterDelivered', n(totals['task.delivered']));
-  setText('#counterMessages', n(totals['task.message']));
-  setText('#counterCompleted', s.qualifiedCompletedTasks ?? n(totals['task.completed']));
+  setText('#statAgents', demoMetric(s.agents ?? 0));
+  setText('#statAvailable', demoMetric(s.availableAgents ?? 0));
+  setText('#statOpen', demoMetric(s.openTasks ?? 0));
+  setText('#statDone', demoMetric(s.qualifiedCompletedTasks ?? s.completedTasks ?? 0));
+  setText('#metricDiscoveries', demoMetric(n(totals['agent.discovery'])));
+  setText('#metricMatches', demoMetric(n(totals['task.match_requested'])));
+  setText('#metricProtocolCalls', demoMetric(n(totals['protocol.mcp_call']) + n(totals['protocol.a2a_call'])));
+  setText('#metricRepeat', demoMetric(s.repeatProviders ?? n(totals['provider.repeat_completion'])));
+  setText('#counterCreated', demoMetric(n(totals['task.created'])));
+  setText('#counterAccepted', demoMetric(n(totals['task.accepted'])));
+  setText('#counterDelivered', demoMetric(n(totals['task.delivered'])));
+  setText('#counterMessages', demoMetric(n(totals['task.message'])));
+  setText('#counterCompleted', demoMetric(s.qualifiedCompletedTasks ?? n(totals['task.completed'])));
   const provider = state.paymentConfig?.provider || 'disabled';
   const live = Boolean(state.paymentConfig?.live);
   const target = $('#paymentProviderState');
