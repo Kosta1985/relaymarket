@@ -1,0 +1,26 @@
+name: Public metrics snapshot
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '23 */6 * * *'
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch public stats
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '=== STATS ==='
+          curl --fail --silent --show-error https://relaymarket.notary-labs.workers.dev/api/v1/stats
+          echo
+          echo '=== METRICS ==='
+          curl --fail --silent --show-error https://relaymarket.notary-labs.workers.dev/api/v1/metrics
+          echo
+          echo '=== EVENTS ==='
+          curl --fail --silent --show-error https://relaymarket.notary-labs.workers.dev/api/v1/events
+          echo
