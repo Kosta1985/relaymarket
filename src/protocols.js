@@ -1,6 +1,6 @@
 import { VERSION } from './domain.js';
 import { MCP_LEGACY_VERSION, agentCard, openApi, mcpTools } from './discovery.js';
-import { createTask, getTask, listAgents, matches, listMessages, createMessage, acceptTask, startTask, deliverTask, completeTask, disputeTask, cancelTask, stats, authenticateApiKey, getIdempotent, saveIdempotent, createPayment } from './store.js';
+import { createAgent, issueCredential, createTask, getTask, listAgents, matches, listMessages, createMessage, acceptTask, startTask, deliverTask, completeTask, disputeTask, cancelTask, stats, authenticateApiKey, getIdempotent, saveIdempotent, createPayment } from './store.js';
 import { paymentQuote } from './payments.js';
 import { requestFingerprint } from './security.js';
 
@@ -55,7 +55,12 @@ export async function handleA2A(request, ctx = {}) {
     const text = (message.parts || []).map(p => p.text || '').join('\n');
     const data = (message.parts || []).find(p => p.data)?.data || {};
     let result;
-    if (data.action === 'discover_agents') result = { agents: listAgents(data.filters || {}) };
+    if (data.action === 'register_agent') {
+      const agent = data.agent || {};
+      requireRegistrationIdempotencyKey(request);
+      validateRegistrationInput(agent);
+      result = await protocolMutationLocal(request, 'register_agent', agent, async () => registrationPayload(await registerLocalAgent(agent, ctx.source)), 'a2a');
+    } else if (data.action === 'discover_agents') result = { agents: listAgents(data.filters || {}) };
     else if (data.action === 'publish_task') {
       const taskInput = data.task || {};
       if (taskInput.requesterAgentId) await requireProtocolAgent(request, taskInput.requesterAgentId);
@@ -88,7 +93,7 @@ export async function handleA2A(request, ctx = {}) {
     } else if (data.action === 'send_message') {
       await requireProtocolAgent(request, data.fromAgentId);
       result = await protocolMutationLocal(request, 'send_message', data, async () => ({ message: await createMessage(data.taskId, data, { source: ctx.source }) }), 'a2a');
-    } else result = { help: 'Use data.action: discover_agents, publish_task, task_matches, get_task, task_messages, accept_task, start_task, deliver_task, complete_task, dispute_task, cancel_task, send_message, payment_quote, or create_payment.', receivedText: text };
+    } else result = { help: 'Use data.action: register_agent, discover_agents, publish_task, task_matches, get_task, task_messages, accept_task, start_task, deliver_task, complete_task, dispute_task, cancel_task, send_message, payment_quote, or create_payment.', receivedText: text };
     const taskId = `task_${crypto.randomUUID()}`;
     const contextId = message.contextId || `ctx_${crypto.randomUUID()}`;
     return json({
@@ -115,7 +120,11 @@ export async function handleA2A(request, ctx = {}) {
 
 async function callTool(name, args, request, ctx = {}) {
   let value;
-  if (name === 'relaymarket_discover_agents') value = { agents: listAgents({ capability: args.capability, protocol: args.protocol, available: args.available === false ? undefined : 'true' }) };
+  if (name === 'relaymarket_register_agent') {
+    requireRegistrationIdempotencyKey(request);
+    validateRegistrationInput(args);
+    value = await protocolMutationLocal(request, 'register_agent', args, async () => registrationPayload(await registerLocalAgent(args, ctx.source)));
+  } else if (name === 'relaymarket_discover_agents') value = { agents: listAgents({ capability: args.capability, protocol: args.protocol, available: args.available === false ? undefined : 'true' }) };
   else if (name === 'relaymarket_publish_task') {
     if (args.requesterAgentId) await requireProtocolAgent(request, args.requesterAgentId);
     value = await protocolMutationLocal(request, 'publish_task', args, async () => ({ task: await createTask(args, { source: ctx.source }) }));
@@ -152,12 +161,55 @@ async function callTool(name, args, request, ctx = {}) {
   return { content: [{ type: 'text', text: JSON.stringify(value) }], structuredContent: value };
 }
 
+
+async function registerLocalAgent(input, source) {
+  const agent = await createAgent(input, { source });
+  const credential = await issueCredential(agent.id, { source });
+  return { agent, credential };
+}
+
+function requireRegistrationIdempotencyKey(request) {
+  const key = request.headers.get('idempotency-key')?.trim() || '';
+  if (!key) throw new Error('Idempotency-Key header is required for agent registration');
+  if (key.length < 8 || key.length > 200) throw new Error('Invalid Idempotency-Key header');
+  return key;
+}
+
+function validateRegistrationInput(input = {}) {
+  if (!String(input.name || '').trim()) throw new Error('Agent name is required');
+  if (!Array.isArray(input.capabilities) || !input.capabilities.some(value => String(value || '').trim())) throw new Error('At least one real agent capability is required');
+  const allowed = new Set(['mcp', 'a2a', 'openapi', 'http']);
+  if (!Array.isArray(input.protocols) || !input.protocols.length || input.protocols.some(value => !allowed.has(String(value || '').toLowerCase()))) throw new Error('At least one supported agent protocol is required');
+  if (input.endpoints != null && !Array.isArray(input.endpoints)) throw new Error('Agent endpoints must be an array');
+  for (const endpoint of input.endpoints || []) {
+    if (!allowed.has(String(endpoint?.protocol || '').toLowerCase())) throw new Error('Unsupported endpoint protocol');
+    let url;
+    try { url = new URL(String(endpoint?.url || '')); } catch { throw new Error('Agent endpoint URL is invalid'); }
+    if (url.protocol !== 'https:') throw new Error('Agent endpoint must use HTTPS');
+  }
+}
+
+function registrationPayload(registered) {
+  return {
+    agent: registered.agent,
+    credential: {
+      apiKey: registered.credential.apiKey,
+      credentialId: registered.credential.credentialId,
+      warning: 'Store this API key securely. It is available only through the registration response and idempotent replay; it cannot be retrieved later.'
+    },
+    trust: {
+      registrationIsVerification: false,
+      nextStep: 'Prove endpoint control separately if you operate a public endpoint.'
+    }
+  };
+}
+
 async function protocolMutationLocal(request, operation, args, fn, protocol = 'mcp') {
   const key = request.headers.get('idempotency-key')?.trim() || null;
   if (key && (key.length < 8 || key.length > 200)) throw new Error('Invalid idempotency key');
   if (!key) return fn();
   const scope = `${protocol}:${operation}`;
-  const fingerprint = requestFingerprint('MCP', scope, args);
+  const fingerprint = requestFingerprint(protocol.toUpperCase(), scope, args);
   const cached = await getIdempotent(scope, key, fingerprint);
   if (cached) return cached.payload;
   const value = await fn();

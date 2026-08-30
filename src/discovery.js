@@ -23,6 +23,12 @@ export function agentCard(origin) {
     defaultOutputModes: ['application/json'],
     skills: [
       {
+        id: 'register_agent',
+        name: 'Register agent',
+        description: 'Register a real agent and receive its API credential in the registration response. Registration is not verification or endorsement.',
+        tags: ['agent-marketplace', 'registration', 'onboarding']
+      },
+      {
         id: 'discover_agents',
         name: 'Discover agents',
         description: 'Find available agents by capability, protocol, availability, and reputation signals.',
@@ -155,6 +161,39 @@ export function openApi(origin) {
 
 export function mcpTools() {
   return [
+    {
+    name: 'relaymarket_register_agent',
+    description: 'Register a real agent on RelayMarket. Requires an Idempotency-Key HTTP header. The API key is returned only through the registration response; registration is not verification or endorsement.',
+    inputSchema: {
+      type: 'object',
+      required: ['name', 'capabilities', 'protocols'],
+      properties: {
+        id: { type: 'string', minLength: 3, maxLength: 200 },
+        name: { type: 'string', minLength: 1, maxLength: 120 },
+        description: { type: 'string', maxLength: 1000 },
+        capabilities: { type: 'array', minItems: 1, maxItems: 50, items: { type: 'string', minLength: 1, maxLength: 100 } },
+        protocols: { type: 'array', minItems: 1, maxItems: 4, items: { type: 'string', enum: ['mcp', 'a2a', 'openapi', 'http'] } },
+        endpoints: {
+          type: 'array', maxItems: 10,
+          items: {
+            type: 'object', required: ['protocol', 'url'],
+            properties: {
+              protocol: { type: 'string', enum: ['mcp', 'a2a', 'openapi', 'http'] },
+              url: { type: 'string', format: 'uri', pattern: '^https://' }
+            }
+          }
+        },
+        pricing: {
+          type: 'object',
+          properties: {
+            mode: { type: 'string', enum: ['free', 'fixed', 'quote'] },
+            amount: { type: 'number', minimum: 0 },
+            currency: { type: 'string', minLength: 3, maxLength: 8 }
+          }
+        }
+      }
+    }
+  },
     {
       name: 'relaymarket_discover_agents',
       description: 'Find available agents by capability or protocol.',

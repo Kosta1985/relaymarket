@@ -500,6 +500,43 @@ async function protocolMutation(repo, request, operation, args, fn, protocol = '
   }
 }
 
+
+function requireRegistrationIdempotencyKey(request) {
+  const key = request.headers.get('idempotency-key')?.trim() || '';
+  if (!key) throw problem('registration_idempotency_key_required', 400);
+  if (key.length < 8 || key.length > 200) throw problem('invalid_idempotency_key', 400);
+  return key;
+}
+
+function validateRegistrationInput(input = {}) {
+  if (!String(input.name || '').trim()) throw problem('agent_name_required', 400);
+  if (!Array.isArray(input.capabilities) || !input.capabilities.some(value => String(value || '').trim())) throw problem('agent_capabilities_required', 400);
+  const allowed = new Set(['mcp', 'a2a', 'openapi', 'http']);
+  if (!Array.isArray(input.protocols) || !input.protocols.length || input.protocols.some(value => !allowed.has(String(value || '').toLowerCase()))) throw problem('agent_protocols_invalid', 400);
+  if (input.endpoints != null && !Array.isArray(input.endpoints)) throw problem('agent_endpoints_invalid', 400);
+  for (const endpoint of input.endpoints || []) {
+    if (!allowed.has(String(endpoint?.protocol || '').toLowerCase())) throw problem('agent_endpoint_protocol_invalid', 400);
+    let url;
+    try { url = new URL(String(endpoint?.url || '')); } catch { throw problem('agent_endpoint_url_invalid', 400); }
+    if (url.protocol !== 'https:') throw problem('agent_endpoint_must_use_https', 400);
+  }
+}
+
+function registrationPayload(registered) {
+  return {
+    agent: registered.agent,
+    credential: {
+      apiKey: registered.credential.apiKey,
+      credentialId: registered.credential.credentialId,
+      warning: 'Store this API key securely. It is available only through the registration response and idempotent replay; it cannot be retrieved later.'
+    },
+    trust: {
+      registrationIsVerification: false,
+      nextStep: 'Prove endpoint control separately if you operate a public endpoint.'
+    }
+  };
+}
+
 async function requireTrustAdmin(request, env) {
   const expected = String(env.TRUST_ADMIN_TOKEN || '');
   if (!expected) throw problem('trust_admin_not_configured', 503);
@@ -586,7 +623,11 @@ async function handleMcp(request, repo, source, env) {
       const args = body.params?.arguments || {};
       const name = body.params?.name;
       let value;
-      if (name === 'relaymarket_discover_agents') value = { agents: await repo.listAgents({ capability: args.capability, protocol: args.protocol, available: args.available === false ? undefined : 'true' }) };
+      if (name === 'relaymarket_register_agent') {
+        requireRegistrationIdempotencyKey(request);
+        validateRegistrationInput(args);
+        value = await protocolMutation(repo, request, 'register_agent', args, async () => registrationPayload(await repo.registerAgent(args, { source })));
+      } else if (name === 'relaymarket_discover_agents') value = { agents: await repo.listAgents({ capability: args.capability, protocol: args.protocol, available: args.available === false ? undefined : 'true' }) };
       else if (name === 'relaymarket_publish_task') {
         if (args.requesterAgentId) await requireAgent(request, repo, args.requesterAgentId);
         value = await protocolMutation(repo, request, 'publish_task', args, async () => ({ task: await repo.createTask(args, { source }) }));
@@ -645,7 +686,12 @@ async function handleA2A(request, repo, source, env) {
     const parts = message.parts || [];
     const data = parts.find(p => p.data)?.data || {};
     let result;
-    if (data.action === 'discover_agents') result = { agents: await repo.listAgents(data.filters || {}) };
+    if (data.action === 'register_agent') {
+      const agent = data.agent || {};
+      requireRegistrationIdempotencyKey(request);
+      validateRegistrationInput(agent);
+      result = await protocolMutation(repo, request, 'register_agent', agent, async () => registrationPayload(await repo.registerAgent(agent, { source })), 'a2a');
+    } else if (data.action === 'discover_agents') result = { agents: await repo.listAgents(data.filters || {}) };
     else if (data.action === 'trust_summary') result = { trust: await repo.trustSummary() };
     else if (data.action === 'publish_task') {
       const task = data.task || {};
@@ -684,7 +730,7 @@ async function handleA2A(request, repo, source, env) {
     } else if (data.action === 'send_message') {
       await requireAgent(request, repo, data.fromAgentId);
       result = await protocolMutation(repo, request, 'send_message', data, async () => ({ message: await repo.createMessage(data.taskId, data, { source }) }), 'a2a');
-    } else result = { help: 'Use data.action: discover_agents, trust_summary, publish_task, task_matches, get_task, task_messages, accept_task, start_task, deliver_task, complete_task, dispute_task, cancel_task, send_message, get_protection_case, add_protection_evidence, payment_quote, or create_payment.' };
+    } else result = { help: 'Use data.action: register_agent, discover_agents, trust_summary, publish_task, task_matches, get_task, task_messages, accept_task, start_task, deliver_task, complete_task, dispute_task, cancel_task, send_message, get_protection_case, add_protection_evidence, payment_quote, or create_payment.' };
     const taskId = `task_${crypto.randomUUID()}`;
     const contextId = message.contextId || `ctx_${crypto.randomUUID()}`;
     return json({
