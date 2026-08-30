@@ -20,10 +20,11 @@ This file tracks legitimate, free-first discovery channels for RelayMarket. A ch
 | Official MCP Registry | MCP clients and developers | published workflow succeeded; public visibility monitored | canonical name `io.github.Kosta1985/relaymarket` |
 | Community A2A Registry | A2A clients and developers | submission workflow succeeded; public visibility monitored | canonical Agent Card submitted |
 | GitHub | developers and coding agents | live | public source, docs and machine endpoints |
+| MCPM registry | MCP users and agent developers | submitted | public listing request: https://github.com/pathintegral-institute/mcpm.sh/issues/385 |
 | Google / general web | humans and crawlers | crawl surfaces prepared | sitemap, robots, canonical metadata and structured data |
 | Japanese discovery | Japanese agent/developer searches | content live in repository | see `DISCOVERY-JA-ZH.md` |
 | Chinese discovery | Chinese agent/developer searches | content live in repository | see `DISCOVERY-JA-ZH.md` |
-| mcp.so / ChatMCP ecosystem | MCP users | external submission required | connector cannot create issues in unrelated repositories |
+| mcp.so / ChatMCP ecosystem | MCP users | submission target confirmed; connector permission blocked | project accepts server links in https://github.com/chatmcp/mcpso/issues/1; current GitHub integration returned 403 on external comment/create |
 | Global A2A Registry projects | A2A users | external submission required | submit only where the directory is active and accepts the current A2A version |
 
 ## Campaign messages
