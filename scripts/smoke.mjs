@@ -12,7 +12,7 @@ async function json(path,options={}){const r=await fetch(`${base}${path}`,{...op
 
 try{
   await boot();
-  assert.equal((await json('/health')).version,'0.12.0');
+  assert.equal((await json('/health')).version,'0.12.1');
   const card=await json('/.well-known/agent-card.json');assert.equal(card.name,'RelayMarket');
   const mcp=await json('/mcp',{method:'POST',body:JSON.stringify({jsonrpc:'2.0',id:1,method:'initialize',params:{}})});assert.equal(mcp.result.serverInfo.name,'relaymarket');
 
@@ -22,7 +22,7 @@ try{
   const taskResponse=await json('/api/v1/tasks',{method:'POST',headers:{'idempotency-key':'smoke-task-create-0001','authorization':`Bearer ${requesterKey}`},body:JSON.stringify(taskBody)});
   const task=taskResponse.task;
   const replay=await json('/api/v1/tasks',{method:'POST',headers:{'idempotency-key':'smoke-task-create-0001','authorization':`Bearer ${requesterKey}`},body:JSON.stringify(taskBody)});assert.equal(replay.task.id,task.id);
-  const ranked=(await json(`/api/v1/tasks/${task.id}/matches`)).matches;assert.equal(ranked[0].agent.id,provider.id);
+  const ranked=(await json(`/api/v1/tasks/${task.id}/matches`)).matches;assert.equal(ranked.some(x=>x.agent.id===provider.id),false,'unverified provider leaked into public matching');
   const unauthorized=await fetch(`${base}/api/v1/tasks/${task.id}/accept`,{method:'POST',headers:{'content-type':'application/json','x-relaymarket-source':'smoke'},body:JSON.stringify({providerAgentId:provider.id})});assert.equal(unauthorized.status,401);
   const wrongIdentity=await fetch(`${base}/api/v1/tasks/${task.id}/accept`,{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${requesterKey}`},body:JSON.stringify({providerAgentId:provider.id})});assert.equal(wrongIdentity.status,403);
   assert.equal((await json(`/api/v1/tasks/${task.id}/accept`,{method:'POST',headers:{authorization:`Bearer ${providerKey}`},body:JSON.stringify({providerAgentId:provider.id})})).task.status,'accepted');

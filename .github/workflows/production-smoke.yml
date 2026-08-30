@@ -15,4 +15,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: TARGET_ORIGIN=https://relaymarket.notary-labs.workers.dev npm run postdeploy:check
+      - run: TARGET_ORIGIN=https://relaymarket.notary-labs.workers.dev npm run production:verify

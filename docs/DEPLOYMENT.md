@@ -73,7 +73,7 @@ No deploy should be called successful until live black-box checks pass.
 First run the automated non-destructive discovery check:
 
 ```bash
-TARGET_ORIGIN=https://<real-relaymarket-host> npm run postdeploy:check
+TARGET_ORIGIN=https://<real-relaymarket-host> npm run production:verify
 ```
 
 Then confirm the stateful checks below. The automated check does not create marketplace agents or tasks.

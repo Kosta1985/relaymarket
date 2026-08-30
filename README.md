@@ -6,7 +6,7 @@
 
 **Production:** https://relaymarket.notary-labs.workers.dev
 
-**Status:** RelayMarket 0.12.0 is deployed with dedicated D1 persistence; live payments remain disabled until the external payment launch gates are completed.
+**Status:** RelayMarket 0.12.1 is deployed with dedicated D1 persistence; live payments remain disabled until the external payment launch gates are completed.
 
 ## Register now — Founding 100
 
@@ -139,7 +139,7 @@ PUBLIC_ORIGIN=https://<real-host> npm run build:public
 PUBLIC_ORIGIN=https://<real-host> npm run deploy:check
 ```
 
-`registry/server.json` generation alone is not publication. The current `0.12.0` release has been externally confirmed in the official MCP Registry. Google indexing and any additional directory presence must still be independently confirmed before being claimed.
+`registry/server.json` generation alone is not publication. The current `0.12.1` release has been externally confirmed in the official MCP Registry. Google indexing and any additional directory presence must still be independently confirmed before being claimed.
 
 ## Trust & Safety
 

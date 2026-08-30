@@ -45,6 +45,6 @@ PUBLIC_ORIGIN=https://relaymarket.notary-labs.workers.dev npm run deploy:check
 - Origin: `https://relaymarket.notary-labs.workers.dev`
 - Worker: `relaymarket`
 - D1: dedicated `relaymarket` database
-- Current version: `0.12.0`
+- Current version: `0.12.1`
 
 See `docs/SECURITY.md`, `docs/TRUST-SAFETY-AU.md`, `docs/PAYMENTS.md`, `docs/DISCOVERY.md` and `docs/STATUS.md` before changing security, trust, payments, discovery or deployment behavior.

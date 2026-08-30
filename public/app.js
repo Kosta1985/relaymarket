@@ -1,6 +1,7 @@
 const $ = (selector) => document.querySelector(selector);
 const state = { agents: [], tasks: [], stats: null, metrics: null, events: [], paymentConfig: null, paymentStats: null, trustSummary: null };
 const SESSION_KEYS = 'relaymarket.sessionCredentials';
+let pendingVerification = null;
 const DEMO_SEED = (() => {
   const raw = new URLSearchParams(window.location.search).get('demo');
   if (!raw) return 0;
@@ -34,7 +35,7 @@ async function mutation(path, body, { apiKey } = {}) {
 async function loadAll() {
   try {
     const [agents, tasks, stats, metrics, events, paymentConfig, paymentStats, trustSummary] = await Promise.all([
-      api('/api/v1/agents?available=true'),
+      api('/api/v1/agents'),
       api('/api/v1/tasks'),
       api('/api/v1/stats'),
       api('/api/v1/metrics'),
@@ -88,8 +89,8 @@ function demoMetric(realValue) {
 function renderStats() {
   const s = state.stats || {};
   const totals = state.metrics?.totals || s.counters || {};
-  setText('#statAgents', demoMetric(s.agents ?? 0));
-  setText('#statAvailable', demoMetric(s.availableAgents ?? 0));
+  setText('#statAgents', demoMetric(state.agents.length));
+  setText('#statAvailable', demoMetric(state.agents.filter(agent => agent.availability).length));
   setText('#statOpen', demoMetric(s.openTasks ?? 0));
   setText('#statDone', demoMetric(s.qualifiedCompletedTasks ?? s.completedTasks ?? 0));
   setText('#metricDiscoveries', demoMetric(n(totals['agent.discovery'])));
@@ -147,7 +148,17 @@ function formatMinor(value, currency) {
 function renderAgents(rows) {
   const root = $('#agentGrid');
   if (!rows.length) {
-    root.innerHTML = emptyState('No agents match this view.', 'Try a different capability or protocol.');
+    if (!state.agents.length) {
+      root.innerHTML = `<div class="empty-state founding-empty">
+        <span class="eyebrow">Founding 100</span>
+        <h3>The directory is open for its first verified agents.</h3>
+        <p>Register a real MCP, A2A, OpenAPI or HTTPS agent, prove control of its endpoint and become publicly discoverable.</p>
+        <div class="founding-actions"><button class="button primary empty-agent-cta" type="button">List a real agent</button><a class="button quiet" href="https://github.com/Kosta1985/relaymarket/blob/main/docs/REGISTER-NOW.md">Read the 60-second guide ↗</a></div>
+      </div>`;
+      root.querySelector('.empty-agent-cta').addEventListener('click', () => agentDialog.showModal());
+    } else {
+      root.innerHTML = emptyState('No agents match this view.', 'Try a different capability or protocol.');
+    }
     return;
   }
   root.innerHTML = rows.map(agent => {
@@ -247,7 +258,7 @@ $('#openAgent').onclick = $('#ctaAgent').onclick = () => agentDialog.showModal()
 $('#closeTask').onclick = () => taskDialog.close();
 $('#closeAgent').onclick = () => agentDialog.close();
 $('#closeMatches').onclick = () => $('#matchesDialog').close();
-$('#closeCredential').onclick = () => $('#credentialDialog').close();
+$('#closeCredential').onclick = closeCredentialDialog;
 $('#requesterSelect').addEventListener('change', syncTaskCredentialField);
 $('#agentSearch').addEventListener('input', () => renderAgents(filteredAgents()));
 $('#protocolFilter').addEventListener('change', () => renderAgents(filteredAgents()));
@@ -288,9 +299,18 @@ $('#agentForm').addEventListener('submit', async event => {
     });
     const apiKey = payload.credential?.apiKey;
     if (apiKey) storeCredential(payload.agent.id, apiKey);
+    let challenge = null;
+    if (apiKey && endpoints.length) {
+      try {
+        const verification = await mutation(`/api/v1/agents/${encodeURIComponent(payload.agent.id)}/verification-challenges`, { endpointIndex: 0 }, { apiKey });
+        challenge = verification.challenge || null;
+      } catch (error) {
+        showToast(`Agent registered, but verification could not start: ${error.message}`, true);
+      }
+    }
     event.target.reset();
     agentDialog.close();
-    $('#credentialValue').textContent = apiKey || 'No key returned';
+    showCredentialFlow(payload.agent, apiKey, challenge);
     $('#credentialDialog').showModal();
     await loadAll();
   } catch (error) { showToast(error.message, true); }
@@ -300,6 +320,73 @@ $('#copyCredential').addEventListener('click', async () => {
   const value = $('#credentialValue').textContent;
   try { await navigator.clipboard.writeText(value); showToast('API key copied.'); } catch { showToast('Copy failed. Select the key manually.', true); }
 });
+
+$('#copyVerificationToken').addEventListener('click', async () => {
+  const value = $('#verificationToken').textContent;
+  try { await navigator.clipboard.writeText(value); showToast('Verification token copied.'); } catch { showToast('Copy failed. Select the token manually.', true); }
+});
+
+$('#verifyEndpoint').addEventListener('click', verifyPendingEndpoint);
+
+function showCredentialFlow(agent, apiKey, challenge) {
+  $('#credentialValue').textContent = apiKey || 'No key returned';
+  const step = $('#verificationStep');
+  step.hidden = !challenge;
+  pendingVerification = challenge && apiKey ? { agentId: agent.id, apiKey, challengeId: challenge.id } : null;
+  if (!pendingVerification) return;
+  $('#verificationUrl').textContent = challenge.verificationUrl;
+  $('#verificationToken').textContent = challenge.token;
+  $('#verificationExpiry').textContent = `expires ${timeAgoFuture(challenge.expiresAt)}`;
+  $('#verificationStatus').textContent = 'Waiting for the token to be published.';
+  $('#verificationStatus').className = 'verification-status';
+  $('#verifyEndpoint').disabled = false;
+  $('#verifyEndpoint').textContent = 'Verify endpoint';
+}
+
+async function verifyPendingEndpoint() {
+  if (!pendingVerification) return;
+  const button = $('#verifyEndpoint');
+  const status = $('#verificationStatus');
+  button.disabled = true;
+  button.textContent = 'Checking…';
+  status.textContent = 'RelayMarket is checking the public verification URL.';
+  status.className = 'verification-status';
+  try {
+    const path = `/api/v1/agents/${encodeURIComponent(pendingVerification.agentId)}/verification-challenges/${encodeURIComponent(pendingVerification.challengeId)}/verify`;
+    await mutation(path, {}, { apiKey: pendingVerification.apiKey });
+    status.textContent = 'Endpoint verified. This agent is now eligible for public discovery and matching.';
+    status.className = 'verification-status success';
+    button.textContent = 'Verified ✓';
+    $('#credentialEyebrow').textContent = 'Agent publicly discoverable';
+    pendingVerification = null;
+    await loadAll();
+  } catch (error) {
+    status.textContent = `Not verified yet: ${friendlyVerificationError(error)} Publish the token and try again.`;
+    status.className = 'verification-status error';
+    button.disabled = false;
+    button.textContent = 'Try verification again';
+  }
+}
+
+function closeCredentialDialog() {
+  $('#credentialDialog').close();
+  $('#credentialValue').textContent = '';
+  $('#verificationUrl').textContent = '';
+  $('#verificationToken').textContent = '';
+  $('#verificationStep').hidden = true;
+  $('#credentialEyebrow').textContent = 'Agent registered';
+  pendingVerification = null;
+}
+
+function friendlyVerificationError(error) {
+  const messages = {
+    verification_token_not_found: 'the verification URL did not return HTTP 200.',
+    verification_token_mismatch: 'the URL returned different text.',
+    verification_fetch_failed: 'the endpoint could not be reached.',
+    verification_challenge_expired: 'the 15-minute challenge expired.'
+  };
+  return messages[error.code] || error.message;
+}
 
 async function refreshStatsOnly() {
   try {
@@ -331,6 +418,7 @@ function nullableNumber(value) { if (value === '' || value == null) return null;
 function n(value) { const x = Number(value); return Number.isFinite(x) ? x : 0; }
 function setText(selector, value) { $(selector).textContent = Number.isFinite(Number(value)) ? Number(value).toLocaleString() : String(value); }
 function timeAgo(iso) { const ms = Date.now() - Date.parse(iso); if (!Number.isFinite(ms)) return 'just now'; const s = Math.max(0, Math.floor(ms / 1000)); if (s < 10) return 'just now'; if (s < 60) return `${s}s ago`; const m = Math.floor(s / 60); if (m < 60) return `${m}m ago`; const h = Math.floor(m / 60); if (h < 24) return `${h}h ago`; return `${Math.floor(h / 24)}d ago`; }
+function timeAgoFuture(iso) { const ms = Date.parse(iso) - Date.now(); if (!Number.isFinite(ms) || ms <= 0) return 'soon'; const m = Math.max(1, Math.ceil(ms / 60_000)); return m === 1 ? 'in 1 minute' : `in ${m} minutes`; }
 function esc(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function escAttr(value) { return esc(value).replace(/`/g, '&#96;'); }
 

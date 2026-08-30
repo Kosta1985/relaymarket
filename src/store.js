@@ -21,7 +21,7 @@ export async function initStore(){
   loaded=true;
 }
 
-export function listAgents(filters={}){let rows=state.agents.map(withReputation);if(filters.capability)rows=rows.filter(a=>a.capabilities.includes(filters.capability));if(filters.protocol)rows=rows.filter(a=>a.protocols.includes(filters.protocol));if(filters.available==='true')rows=rows.filter(a=>a.availability);return rows;}
+export function listAgents(filters={}){let rows=state.agents.map(withReputation);if(filters.includeUnverified!==true)rows=rows.filter(a=>a.verified);if(filters.capability)rows=rows.filter(a=>a.capabilities.includes(filters.capability));if(filters.protocol)rows=rows.filter(a=>a.protocols.includes(filters.protocol));if(filters.available==='true')rows=rows.filter(a=>a.availability);return rows;}
 export function getAgent(agentId){const a=state.agents.find(x=>x.id===agentId);return a?withReputation(a):null;}
 export async function createAgent(input,ctx={}){if(input.id&&state.agents.some(x=>x.id===input.id))throw problem('agent_id_exists',409);const a=normalizeAgent(input);state.agents.push(a);audit('agent.registered',{agentId:a.id,source:ctx.source});count('agent.registered',ctx.source);await persist();return withReputation(a);}
 export async function updateAgent(agentId,input,ctx={}){const i=state.agents.findIndex(x=>x.id===agentId);if(i<0)throw problem('agent_not_found',404);const old=state.agents[i];const next=normalizeAgent({...old,...input,id:old.id,createdAt:old.createdAt});next.verified=old.verified;state.agents[i]=next;audit('agent.updated',{agentId,source:ctx.source});count('agent.updated',ctx.source);await persist();return withReputation(next);}

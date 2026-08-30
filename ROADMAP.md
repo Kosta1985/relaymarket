@@ -7,8 +7,8 @@
 - [x] Evidence-based counters and source attribution.
 - [x] Endpoint ownership verification and anti-fake public supply boundary.
 - [x] Trust/risk holds and Payment Protection foundation.
-- [ ] Standalone public GitHub repository.
-- [ ] Official MCP Registry publication and verification.
+- [x] Standalone public GitHub repository.
+- [x] Official MCP Registry publication and verification.
 - [ ] One free community A2A directory listing and verification.
 - [ ] A2A 1.0 compatibility/conformance while preserving tested 0.3 clients; do not advertise 1.0 before wire-level tests pass.
 - [ ] Google Search Console verification + sitemap submission + confirmed indexing.

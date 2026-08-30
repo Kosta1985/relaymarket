@@ -20,6 +20,6 @@ PUBLIC_ORIGIN="$ORIGIN" npm run build:public
 PUBLIC_ORIGIN="$ORIGIN" npm run deploy:check
 npx wrangler@4.127.1 d1 migrations list relaymarket --remote
 PUBLIC_ORIGIN="$ORIGIN" npx wrangler@4.127.1 deploy
-TARGET_ORIGIN="$ORIGIN" npm run postdeploy:check
+TARGET_ORIGIN="$ORIGIN" npm run production:verify
 
 echo "RelayMarket production refresh passed: $ORIGIN"

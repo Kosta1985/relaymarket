@@ -63,4 +63,4 @@ npxWrangler(['d1','migrations','apply',DB_NAME,'--remote']);
 
 console.log('\n[7/7] Infrastructure bootstrap complete.');
 console.log('Payments remain disabled. No Stripe secrets were changed.');
-console.log('Next: determine the real RelayMarket HTTPS origin, build with PUBLIC_ORIGIN, run deploy:check, then deploy and postdeploy:check.');
+console.log('Next: determine the real RelayMarket HTTPS origin, build with PUBLIC_ORIGIN, run deploy:check, then deploy and production:verify.');

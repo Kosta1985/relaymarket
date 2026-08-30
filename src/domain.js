@@ -1,4 +1,4 @@
-export const VERSION = '0.12.0';
+export const VERSION = '0.12.1';
 export const TASK_STATES = ['open','accepted','working','delivered','completed','disputed','cancelled'];
 export const PROTOCOLS = ['mcp','a2a','openapi','http'];
 export const MESSAGE_TYPES = ['note','question','answer','system'];

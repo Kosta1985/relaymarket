@@ -23,6 +23,34 @@ test('portal mutations preserve identity, attribution and retry safety', () => {
   assert.match(app, /renderPayments/);
 });
 
+test('portal completes the public agent onboarding path with endpoint verification', () => {
+  assert.match(html, /Public HTTPS endpoint/);
+  assert.match(html, /id="verificationStep"/);
+  assert.match(html, /id="verifyEndpoint"/);
+  assert.match(app, /\/verification-challenges/);
+  assert.match(app, /verifyPendingEndpoint/);
+  assert.match(app, /eligible for public discovery and matching/);
+});
+
+test('empty marketplace gives real agents a useful Founding 100 path', () => {
+  assert.match(app, /Founding 100/);
+  assert.match(app, /List a real agent/);
+  assert.match(app, /REGISTER-NOW\.md/);
+});
+
+test('headline supply counters come from the verified public directory', () => {
+  assert.match(app, /setText\('#statAgents', demoMetric\(state\.agents\.length\)\)/);
+  assert.match(app, /api\('\/api\/v1\/agents'\)/);
+  assert.doesNotMatch(app, /api\('\/api\/v1\/agents\?available=true'\)/);
+});
+
+test('portal does not imply that disabled production payments are already usable', () => {
+  assert.doesNotMatch(html, /pay securely/i);
+  assert.doesNotMatch(html, /track delivery and pay through/i);
+  assert.match(html, /Requester total/);
+  assert.match(html, /Provider receives/);
+});
+
 test('portal is RelayMarket-only and responsive styles are present', () => {
   assert.match(css, /@media\(max-width:760px\)/);
   assert.match(css, /\.agent-grid/);
