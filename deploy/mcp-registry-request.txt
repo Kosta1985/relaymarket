@@ -1,0 +1,6 @@
+RelayMarket MCP Registry publication request
+Requested: 2026-08-30
+Registry identity: io.github.Kosta1985/relaymarket
+Requested version: 0.12.1
+Production MCP endpoint: https://relaymarket.notary-labs.workers.dev/mcp
+Purpose: synchronize the official MCP Registry listing with the current RelayMarket package version after product and release checks pass.
