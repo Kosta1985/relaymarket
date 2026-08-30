@@ -8,6 +8,7 @@ if (parsed.protocol !== 'https:') throw new Error('PUBLIC_ORIGIN must use https'
 if (parsed.pathname !== '/' || parsed.search || parsed.hash) throw new Error('PUBLIC_ORIGIN must be an origin without path, query, or hash');
 const origin = parsed.origin;
 const googleToken = String(process.env.GOOGLE_SITE_VERIFICATION || '').trim();
+const pkg = JSON.parse(await readFile(resolve('package.json'), 'utf8'));
 
 const source = resolve('public');
 const target = resolve('dist');
@@ -25,6 +26,16 @@ if (googleToken) {
 }
 if (/__PUBLIC_ORIGIN__|__GOOGLE_SITE_VERIFICATION__/.test(html)) throw new Error('Unresolved deployment placeholder remains in built HTML');
 await writeFile(indexPath, html);
+
+const mcpDiscoveryPath = resolve(target, '.well-known', 'mcp.json');
+let mcpDiscovery = await readFile(mcpDiscoveryPath, 'utf8');
+mcpDiscovery = mcpDiscovery
+  .replaceAll('__PUBLIC_ORIGIN__', origin)
+  .replaceAll('__RELAYMARKET_VERSION__', pkg.version);
+if (/__PUBLIC_ORIGIN__|__RELAYMARKET_VERSION__/.test(mcpDiscovery)) throw new Error('Unresolved deployment placeholder remains in built MCP discovery metadata');
+JSON.parse(mcpDiscovery);
+await writeFile(mcpDiscoveryPath, mcpDiscovery);
+
 console.log(`Built RelayMarket static portal for ${origin}`);
 
 function escapeHtmlAttribute(value) {
