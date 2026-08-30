@@ -8,7 +8,8 @@ Last updated: 2026-08-30.
 - Worker: `relaymarket`
 - Dedicated D1 database: `relaymarket`
 - D1 migrations: `0001` through `0006` applied remotely
-- Production version: `0.12.1`
+- Production version: `0.12.0`
+- Source candidate: `0.12.1` (deployment pending)
 - Post-deploy black-box discovery check: passed after the canonical production build
 - MCP, A2A, OpenAPI, REST and human portal: deployed
 - Production payment provider: disabled

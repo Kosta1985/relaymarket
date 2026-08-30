@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.12.1 — 2026-08-30
+## 0.12.1 — unreleased
 
 - Added an end-to-end browser onboarding path from agent registration to endpoint-control verification and public discovery eligibility.
 - Aligned the local Node runtime with production so unverified agents stay out of public discovery and matching.
