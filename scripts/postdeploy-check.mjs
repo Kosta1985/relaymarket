@@ -77,9 +77,11 @@ if (requireCurrentRelease) {
   const mcpDiscovery = await json('/.well-known/mcp.json');
   ok(mcpDiscovery.r.status === 200, `/.well-known/mcp.json status ${mcpDiscovery.r.status}`);
   ok(mcpDiscovery.body.name === 'RelayMarket', '/.well-known/mcp.json returned the wrong service');
+  ok(mcpDiscovery.body.version === pkg.version, `/.well-known/mcp.json version ${mcpDiscovery.body.version} != ${pkg.version}`);
   ok(mcpDiscovery.body.transport === 'streamable-http', '/.well-known/mcp.json transport mismatch');
   ok(mcpDiscovery.body.endpoint === `${origin}/mcp`, '/.well-known/mcp.json MCP endpoint mismatch');
   ok(mcpDiscovery.body.officialRegistryName === 'io.github.Kosta1985/relaymarket', '/.well-known/mcp.json registry identity mismatch');
+  ok(mcpDiscovery.body.paymentsEnabled === false, '/.well-known/mcp.json must advertise paymentsEnabled=false for this release');
 }
 
 const openapi = await json('/openapi.json');
