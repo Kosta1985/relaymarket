@@ -1,0 +1,5 @@
+RelayMarket production deployment request
+Requested: 2026-08-30
+Target: https://relaymarket.notary-labs.workers.dev
+Expected source baseline: main
+Purpose: deploy the Founding 100 conversion update and public /.well-known/mcp.json discovery metadata.
