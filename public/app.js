@@ -67,7 +67,8 @@ function renderAll() {
   renderPayments();
   renderTrust();
   fillRequesters();
-  $('#lastRefresh').textContent = DEMO_SEED ? 'synthetic preview only' : `updated ${timeAgo(new Date().toISOString())}`;
+  const lastRefresh = $('#lastRefresh');
+  if (lastRefresh) lastRefresh.textContent = DEMO_SEED ? 'synthetic preview only' : `updated ${timeAgo(new Date().toISOString())}`;
 }
 
 function renderDemoNotice() {
@@ -108,8 +109,6 @@ function renderStats() {
   if (target) target.textContent = live ? `${provider} live` : provider === 'mock' ? 'development mock' : 'not live yet';
 }
 
-
-
 async function optionalApi(path) {
   try { return await api(path); } catch (error) { if (error.status === 404 || error.status === 503) return null; throw error; }
 }
@@ -147,6 +146,7 @@ function formatMinor(value, currency) {
 }
 function renderAgents(rows) {
   const root = $('#agentGrid');
+  if (!root) return;
   if (!rows.length) {
     if (!state.agents.length) {
       root.innerHTML = `<div class="empty-state founding-empty">
@@ -155,7 +155,7 @@ function renderAgents(rows) {
         <p>Register a real MCP, A2A, OpenAPI or HTTPS agent, prove control of its endpoint and become publicly discoverable.</p>
         <div class="founding-actions"><button class="button primary empty-agent-cta" type="button">List a real agent</button><a class="button quiet" href="https://github.com/Kosta1985/relaymarket/blob/main/docs/REGISTER-NOW.md">Read the 60-second guide ↗</a></div>
       </div>`;
-      root.querySelector('.empty-agent-cta').addEventListener('click', () => agentDialog.showModal());
+      root.querySelector('.empty-agent-cta')?.addEventListener('click', () => openDialog(agentDialog));
     } else {
       root.innerHTML = emptyState('No agents match this view.', 'Try a different capability or protocol.');
     }
@@ -180,6 +180,7 @@ function renderAgents(rows) {
 
 function renderTasks(rows) {
   const root = $('#taskList');
+  if (!root) return;
   if (!rows.length) {
     root.innerHTML = emptyState('No tasks in this state.', 'Open tasks will appear here as agents publish work.');
     return;
@@ -197,6 +198,7 @@ function renderTasks(rows) {
 
 function renderEvents(rows) {
   const root = $('#events');
+  if (!root) return;
   if (!rows.length) {
     root.innerHTML = emptyState('No marketplace events yet.', 'Real activity will be recorded here.');
     return;
@@ -205,8 +207,8 @@ function renderEvents(rows) {
 }
 
 function filteredAgents() {
-  const query = $('#agentSearch').value.trim().toLowerCase();
-  const protocol = $('#protocolFilter').value;
+  const query = $('#agentSearch')?.value?.trim().toLowerCase() || '';
+  const protocol = $('#protocolFilter')?.value || '';
   return state.agents.filter(agent => {
     const haystack = [agent.name, agent.description, ...(agent.capabilities || [])].join(' ').toLowerCase();
     return (!query || haystack.includes(query)) && (!protocol || (agent.protocols || []).includes(protocol));
@@ -217,10 +219,12 @@ async function showMatches(taskId) {
   try {
     const task = state.tasks.find(t => t.id === taskId);
     const payload = await api(`/api/v1/tasks/${encodeURIComponent(taskId)}/matches`);
-    $('#matchesTitle').textContent = task ? `Matches for “${task.title}”` : 'Compatible agents';
+    const title = $('#matchesTitle');
+    if (title) title.textContent = task ? `Matches for “${task.title}”` : 'Compatible agents';
     const rows = payload.matches || [];
-    $('#matchesList').innerHTML = rows.length ? rows.slice(0, 8).map(match => `<div class="match-row"><div class="match-score">${esc(match.score)}%<small>match</small></div><div><h4>${esc(match.agent.name)}</h4><p>${esc((match.agent.capabilities || []).slice(0, 5).join(' · '))}</p></div></div>`).join('') : emptyState('No compatible agents yet.', 'Register a specialist agent with the required capabilities.');
-    $('#matchesDialog').showModal();
+    const list = $('#matchesList');
+    if (list) list.innerHTML = rows.length ? rows.slice(0, 8).map(match => `<div class="match-row"><div class="match-score">${esc(match.score)}%<small>match</small></div><div><h4>${esc(match.agent.name)}</h4><p>${esc((match.agent.capabilities || []).slice(0, 5).join(' · '))}</p></div></div>`).join('') : emptyState('No compatible agents yet.', 'Register a specialist agent with the required capabilities.');
+    openDialog($('#matchesDialog'));
     await refreshStatsOnly();
   } catch (error) {
     showToast(error.message, true);
@@ -229,6 +233,7 @@ async function showMatches(taskId) {
 
 function fillRequesters() {
   const select = $('#requesterSelect');
+  if (!select) return;
   const current = select.value;
   select.innerHTML = '<option value="">Anonymous / external agent</option>' + state.agents.map(agent => `<option value="${escAttr(agent.id)}">${esc(agent.name)}</option>`).join('');
   if ([...select.options].some(o => o.value === current)) select.value = current;
@@ -236,9 +241,12 @@ function fillRequesters() {
 }
 
 function syncTaskCredentialField() {
-  const agentId = $('#requesterSelect').value;
+  const select = $('#requesterSelect');
   const wrap = $('#taskApiKeyWrap');
+  if (!select || !wrap) return;
+  const agentId = select.value;
   const input = wrap.querySelector('input');
+  if (!input) return;
   wrap.hidden = !agentId;
   if (!agentId) { input.value = ''; return; }
   input.value = sessionCredentials()[agentId] || '';
@@ -250,24 +258,27 @@ function storeCredential(agentId, apiKey) {
   sessionStorage.setItem(SESSION_KEYS, JSON.stringify(current));
 }
 function sessionCredentials() { try { return JSON.parse(sessionStorage.getItem(SESSION_KEYS) || '{}'); } catch { return {}; } }
+function bind(selector, event, handler) { const target = $(selector); if (target) target.addEventListener(event, handler); }
+function openDialog(dialog) { if (dialog?.showModal) dialog.showModal(); }
+function closeDialog(dialog) { if (dialog?.close) dialog.close(); }
 
 const taskDialog = $('#taskDialog');
 const agentDialog = $('#agentDialog');
-$('#openTask').onclick = $('#heroPost').onclick = $('#ctaTask').onclick = () => taskDialog.showModal();
-$('#openAgent').onclick = $('#ctaAgent').onclick = () => agentDialog.showModal();
-$('#closeTask').onclick = () => taskDialog.close();
-$('#closeAgent').onclick = () => agentDialog.close();
-$('#closeMatches').onclick = () => $('#matchesDialog').close();
-$('#closeCredential').onclick = closeCredentialDialog;
-$('#requesterSelect').addEventListener('change', syncTaskCredentialField);
-$('#agentSearch').addEventListener('input', () => renderAgents(filteredAgents()));
-$('#protocolFilter').addEventListener('change', () => renderAgents(filteredAgents()));
-$('#taskFilter').addEventListener('change', async event => {
+for (const selector of ['#openTask', '#heroPost', '#ctaTask']) bind(selector, 'click', () => openDialog(taskDialog));
+for (const selector of ['#openAgent', '#ctaAgent']) bind(selector, 'click', () => openDialog(agentDialog));
+bind('#closeTask', 'click', () => closeDialog(taskDialog));
+bind('#closeAgent', 'click', () => closeDialog(agentDialog));
+bind('#closeMatches', 'click', () => closeDialog($('#matchesDialog')));
+bind('#closeCredential', 'click', closeCredentialDialog);
+bind('#requesterSelect', 'change', syncTaskCredentialField);
+bind('#agentSearch', 'input', () => renderAgents(filteredAgents()));
+bind('#protocolFilter', 'change', () => renderAgents(filteredAgents()));
+bind('#taskFilter', 'change', async event => {
   try { renderTasks((await api(`/api/v1/tasks?status=${encodeURIComponent(event.target.value)}`)).tasks || []); } catch (error) { showToast(error.message, true); }
 });
-$('#refreshActivity').addEventListener('click', refreshActivity);
+bind('#refreshActivity', 'click', refreshActivity);
 
-$('#taskForm').addEventListener('submit', async event => {
+bind('#taskForm', 'submit', async event => {
   event.preventDefault();
   const form = new FormData(event.target);
   const requesterAgentId = String(form.get('requesterAgentId') || '') || null;
@@ -280,13 +291,13 @@ $('#taskForm').addEventListener('submit', async event => {
       budget: nullableNumber(form.get('budget')), currency: String(form.get('currency') || 'USD').trim().toUpperCase()
     }, { apiKey });
     event.target.reset();
-    taskDialog.close();
+    closeDialog(taskDialog);
     showToast('Task published to RelayMarket.');
     await loadAll();
   } catch (error) { showToast(error.message, true); }
 });
 
-$('#agentForm').addEventListener('submit', async event => {
+bind('#agentForm', 'submit', async event => {
   event.preventDefault();
   const form = new FormData(event.target);
   const protocols = split(form.get('protocols'));
@@ -309,44 +320,56 @@ $('#agentForm').addEventListener('submit', async event => {
       }
     }
     event.target.reset();
-    agentDialog.close();
+    closeDialog(agentDialog);
     showCredentialFlow(payload.agent, apiKey, challenge);
-    $('#credentialDialog').showModal();
+    openDialog($('#credentialDialog'));
     await loadAll();
   } catch (error) { showToast(error.message, true); }
 });
 
-$('#copyCredential').addEventListener('click', async () => {
-  const value = $('#credentialValue').textContent;
+bind('#copyCredential', 'click', async () => {
+  const value = $('#credentialValue')?.textContent || '';
   try { await navigator.clipboard.writeText(value); showToast('API key copied.'); } catch { showToast('Copy failed. Select the key manually.', true); }
 });
 
-$('#copyVerificationToken').addEventListener('click', async () => {
-  const value = $('#verificationToken').textContent;
+bind('#copyVerificationToken', 'click', async () => {
+  const value = $('#verificationToken')?.textContent || '';
   try { await navigator.clipboard.writeText(value); showToast('Verification token copied.'); } catch { showToast('Copy failed. Select the token manually.', true); }
 });
 
-$('#verifyEndpoint').addEventListener('click', verifyPendingEndpoint);
+bind('#verifyEndpoint', 'click', verifyPendingEndpoint);
 
 function showCredentialFlow(agent, apiKey, challenge) {
-  $('#credentialValue').textContent = apiKey || 'No key returned';
+  const credentialValue = $('#credentialValue');
+  if (credentialValue) credentialValue.textContent = apiKey || 'No key returned';
   const step = $('#verificationStep');
+  if (!step) return;
   step.hidden = !challenge;
   pendingVerification = challenge && apiKey ? { agentId: agent.id, apiKey, challengeId: challenge.id } : null;
   if (!pendingVerification) return;
-  $('#verificationUrl').textContent = challenge.verificationUrl;
-  $('#verificationToken').textContent = challenge.token;
-  $('#verificationExpiry').textContent = `expires ${timeAgoFuture(challenge.expiresAt)}`;
-  $('#verificationStatus').textContent = 'Waiting for the token to be published.';
-  $('#verificationStatus').className = 'verification-status';
-  $('#verifyEndpoint').disabled = false;
-  $('#verifyEndpoint').textContent = 'Verify endpoint';
+  const verificationUrl = $('#verificationUrl');
+  const verificationToken = $('#verificationToken');
+  const verificationExpiry = $('#verificationExpiry');
+  const verificationStatus = $('#verificationStatus');
+  const verifyEndpoint = $('#verifyEndpoint');
+  if (verificationUrl) verificationUrl.textContent = challenge.verificationUrl;
+  if (verificationToken) verificationToken.textContent = challenge.token;
+  if (verificationExpiry) verificationExpiry.textContent = `expires ${timeAgoFuture(challenge.expiresAt)}`;
+  if (verificationStatus) {
+    verificationStatus.textContent = 'Waiting for the token to be published.';
+    verificationStatus.className = 'verification-status';
+  }
+  if (verifyEndpoint) {
+    verifyEndpoint.disabled = false;
+    verifyEndpoint.textContent = 'Verify endpoint';
+  }
 }
 
 async function verifyPendingEndpoint() {
   if (!pendingVerification) return;
   const button = $('#verifyEndpoint');
   const status = $('#verificationStatus');
+  if (!button || !status) return;
   button.disabled = true;
   button.textContent = 'Checking…';
   status.textContent = 'RelayMarket is checking the public verification URL.';
@@ -357,7 +380,8 @@ async function verifyPendingEndpoint() {
     status.textContent = 'Endpoint verified. This agent is now eligible for public discovery and matching.';
     status.className = 'verification-status success';
     button.textContent = 'Verified ✓';
-    $('#credentialEyebrow').textContent = 'Agent publicly discoverable';
+    const eyebrow = $('#credentialEyebrow');
+    if (eyebrow) eyebrow.textContent = 'Agent publicly discoverable';
     pendingVerification = null;
     await loadAll();
   } catch (error) {
@@ -369,12 +393,17 @@ async function verifyPendingEndpoint() {
 }
 
 function closeCredentialDialog() {
-  $('#credentialDialog').close();
-  $('#credentialValue').textContent = '';
-  $('#verificationUrl').textContent = '';
-  $('#verificationToken').textContent = '';
-  $('#verificationStep').hidden = true;
-  $('#credentialEyebrow').textContent = 'Agent registered';
+  closeDialog($('#credentialDialog'));
+  const credentialValue = $('#credentialValue');
+  const verificationUrl = $('#verificationUrl');
+  const verificationToken = $('#verificationToken');
+  const verificationStep = $('#verificationStep');
+  const credentialEyebrow = $('#credentialEyebrow');
+  if (credentialValue) credentialValue.textContent = '';
+  if (verificationUrl) verificationUrl.textContent = '';
+  if (verificationToken) verificationToken.textContent = '';
+  if (verificationStep) verificationStep.hidden = true;
+  if (credentialEyebrow) credentialEyebrow.textContent = 'Agent registered';
   pendingVerification = null;
 }
 
@@ -400,6 +429,7 @@ async function refreshActivity() {
 
 function showToast(message, error = false) {
   const toast = $('#toast');
+  if (!toast) return;
   clearTimeout(toastTimer); toast.textContent = message; toast.className = `toast show${error ? ' error' : ''}`;
   toastTimer = setTimeout(() => toast.className = 'toast', 3400);
 }
@@ -416,7 +446,7 @@ function shortId(value) { const v = String(value || ''); return v.length > 22 ? 
 function split(value) { return [...new Set(String(value || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean))]; }
 function nullableNumber(value) { if (value === '' || value == null) return null; const n = Number(value); return Number.isFinite(n) && n >= 0 ? n : null; }
 function n(value) { const x = Number(value); return Number.isFinite(x) ? x : 0; }
-function setText(selector, value) { $(selector).textContent = Number.isFinite(Number(value)) ? Number(value).toLocaleString() : String(value); }
+function setText(selector, value) { const target = $(selector); if (!target) return; target.textContent = Number.isFinite(Number(value)) ? Number(value).toLocaleString() : String(value); }
 function timeAgo(iso) { const ms = Date.now() - Date.parse(iso); if (!Number.isFinite(ms)) return 'just now'; const s = Math.max(0, Math.floor(ms / 1000)); if (s < 10) return 'just now'; if (s < 60) return `${s}s ago`; const m = Math.floor(s / 60); if (m < 60) return `${m}m ago`; const h = Math.floor(m / 60); if (h < 24) return `${h}h ago`; return `${Math.floor(h / 24)}d ago`; }
 function timeAgoFuture(iso) { const ms = Date.parse(iso) - Date.now(); if (!Number.isFinite(ms) || ms <= 0) return 'soon'; const m = Math.max(1, Math.ceil(ms / 60_000)); return m === 1 ? 'in 1 minute' : `in ${m} minutes`; }
 function esc(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
