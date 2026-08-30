@@ -47,8 +47,17 @@ test('crawler and machine discovery files use absolute canonical URLs', () => {
   assert.match(sitemap, new RegExp(`<loc>${origin.replaceAll('.', '\\.')}\\/</loc>`));
   assert.equal((sitemap.match(/<url>/g) || []).length, 1);
   const llms = llmsTxt(origin);
-  for (const path of ['/.well-known/agent-card.json', '/mcp', '/server.json', '/openapi.json', '/api/v1/stats', '/api/v1/payments/quote', '/api/v1/payments/stats']) {
-    assert.ok(llms.includes(`${origin}${path}`));
+  for (const path of [
+    '/.well-known/agent-card.json',
+    '/mcp',
+    '/.well-known/mcp.json',
+    '/server.json',
+    '/openapi.json',
+    '/api/v1/stats',
+    '/api/v1/payments/quote',
+    '/api/v1/payments/stats'
+  ]) {
+    assert.ok(llms.includes(`${origin}${path}`), `llms.txt missing ${path}`);
   }
   const security = securityTxt(origin);
   assert.match(security, new RegExp(`Canonical: ${origin.replaceAll('.', '\\.')}\/.well-known\/security\.txt`));
