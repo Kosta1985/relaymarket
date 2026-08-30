@@ -1,5 +1,9 @@
 node_modules/
 .env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
 data/*.json
 data/*.tmp
 .DS_Store
