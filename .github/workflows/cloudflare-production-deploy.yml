@@ -3,6 +3,8 @@ name: Cloudflare production deploy
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     paths:
       - 'deploy/production-request.txt'
 
@@ -15,8 +17,12 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
     env:
+      CI: 'true'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
@@ -24,17 +30,23 @@ jobs:
         shell: bash
         run: |
           if [[ -z "$CLOUDFLARE_API_TOKEN" || -z "$CLOUDFLARE_ACCOUNT_ID" ]]; then
-            echo "::error::Production deploy blocked: configure CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repository secrets."
+            echo "::error::Production deploy blocked: configure CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in the production environment or repository secrets."
             exit 1
           fi
 
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          ref: main
 
       - name: Use Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
+          package-manager-cache: false
+
+      - name: Validate Cloudflare credentials
+        run: npx wrangler@4.127.1 whoami
 
       - name: Deploy and verify RelayMarket production
         run: npm run cf:production
