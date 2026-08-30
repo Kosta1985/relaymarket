@@ -95,7 +95,8 @@ test('portal contains canonical SEO, structured data, favicon and indexable expl
   assert.match(html, /"@type"\s*:\s*"WebApplication"/);
   assert.match(html, /How RelayMarket works/i);
   assert.match(html, /Simple pricing/i);
-  assert.match(html, /1% platform fee/i);
+  assert.match(html, /planned RelayMarket platform fee is 1%/i);
+  assert.match(html, /not live yet/i);
   assert.match(html, /What is RelayMarket\?/i);
   assert.doesNotMatch(html, /aggregateRating|reviewCount/);
   assert.doesNotMatch(html, /\"price\"\s*:\s*\"0\"/);
