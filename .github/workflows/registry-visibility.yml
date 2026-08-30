@@ -1,17 +1,24 @@
 name: Registry visibility
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
   schedule:
     - cron: '17 */6 * * *'
+
 permissions:
   contents: read
+
 jobs:
   visibility:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - name: Verify official MCP Registry visibility
+      - name: Checkout current source
+        uses: actions/checkout@v5
+
+      - name: Verify official MCP Registry visibility and version
         shell: bash
         run: |
           set -euo pipefail
@@ -19,7 +26,33 @@ jobs:
             --data-urlencode 'search=io.github.Kosta1985/relaymarket' \
             --data-urlencode 'version=latest' \
             https://registry.modelcontextprotocol.io/v0.1/servers)"
-          printf '%s' "$body" | grep -Fq 'io.github.Kosta1985/relaymarket'
+          printf '%s' "$body" > /tmp/relaymarket-registry.json
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises';
+
+          const identity = 'io.github.Kosta1985/relaymarket';
+          const expected = JSON.parse(await readFile('package.json', 'utf8')).version;
+          const payload = JSON.parse(await readFile('/tmp/relaymarket-registry.json', 'utf8'));
+          const objects = [];
+          const visit = value => {
+            if (Array.isArray(value)) return value.forEach(visit);
+            if (!value || typeof value !== 'object') return;
+            objects.push(value);
+            Object.values(value).forEach(visit);
+          };
+          visit(payload);
+          const candidates = objects.filter(value => value.name === identity || value.server?.name === identity);
+          if (!candidates.length) throw new Error(`Official MCP Registry does not contain ${identity}`);
+          const versions = [...new Set(candidates.map(value => value.version ?? value.server?.version).filter(Boolean))];
+          if (!versions.includes(expected)) {
+            const message = `Official MCP Registry latest version is ${versions.join(', ') || 'unknown'}; source package is ${expected}`;
+            if (process.env.GITHUB_EVENT_NAME === 'push') console.log(`::warning::${message}`);
+            else throw new Error(message);
+          } else {
+            console.log(`Official MCP Registry is current: ${identity}@${expected}`);
+          }
+          NODE
+
       - name: Verify community A2A Registry visibility
         shell: bash
         run: |
@@ -29,6 +62,7 @@ jobs:
             --data-urlencode 'limit=100' \
             https://a2aregistry.org/api/agents)"
           printf '%s' "$body" | grep -Fq 'RelayMarket'
+
       - name: Verify production Agent Card is still live
         shell: bash
         run: |
