@@ -1,33 +1,90 @@
 name: Publish MCP Registry
+
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'deploy/mcp-registry-request.txt'
+
 permissions:
   contents: read
   id-token: write
+
+concurrency:
+  group: relaymarket-mcp-registry-publish
+  cancel-in-progress: false
+
 jobs:
   publish:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout triggering commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v5
         with:
           node-version: 22
+
       - name: Run product checks
         run: |
           npm test
           npm run smoke
           npm run release:check
+
       - name: Generate production registry metadata
         run: |
           PUBLIC_ORIGIN=https://relaymarket.notary-labs.workers.dev \
           REPOSITORY_URL=https://github.com/Kosta1985/relaymarket \
           npm run registry:generate
-      - name: Install official MCP publisher
+
+      - name: Require current RelayMarket registry identity
+        shell: bash
         run: |
-          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises';
+          const pkg = JSON.parse(await readFile('package.json', 'utf8'));
+          const server = JSON.parse(await readFile('registry/server.json', 'utf8'));
+          if (server.name !== 'io.github.Kosta1985/relaymarket') throw new Error(`Unexpected registry name: ${server.name}`);
+          if (server.version !== pkg.version) throw new Error(`Registry version ${server.version} != package version ${pkg.version}`);
+          if (server.remotes?.[0]?.url !== 'https://relaymarket.notary-labs.workers.dev/mcp') throw new Error('Unexpected production MCP endpoint');
+          console.log(`Publishing ${server.name}@${server.version}`);
+          NODE
+
+      - name: Install verified MCP publisher v1.8.1
+        shell: bash
+        run: |
+          archive=mcp-publisher_linux_amd64.tar.gz
+          curl -fL "https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/${archive}" -o "$archive"
+          echo "a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc  ${archive}" | sha256sum -c -
+          tar xzf "$archive" mcp-publisher
+          ./mcp-publisher --version
+
       - name: Validate metadata
         run: ./mcp-publisher validate registry/server.json
+
       - name: Authenticate with GitHub OIDC
         run: ./mcp-publisher login github-oidc
+
       - name: Publish RelayMarket
         run: ./mcp-publisher publish registry/server.json
+
+      - name: Record registry publication evidence
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          {
+            echo "## RelayMarket MCP Registry publication"
+            echo
+            echo "- Commit: \`${GITHUB_SHA}\`"
+            echo "- Registry identity: \`io.github.Kosta1985/relaymarket\`"
+            echo "- Version requested: \`${VERSION}\`"
+            echo "- Publisher: \`mcp-publisher v1.8.1\` (SHA-256 verified)"
+            echo "- Result: publisher command completed successfully"
+          } >> "$GITHUB_STEP_SUMMARY"
