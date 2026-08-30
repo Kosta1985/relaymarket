@@ -9,25 +9,30 @@ Configure these in the repository or the `production` environment:
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
 
-Do not commit either value to the repository.
+Do not commit either value to the repository. Local Wrangler credential files such as `.dev.vars`, `.dev.vars.*`, `.env`, and `.env.*` are ignored by Git; `.env.example` remains tracked as documentation.
 
 ## Cloudflare API token scope
 
-Use a dedicated token restricted to the single Cloudflare account that owns RelayMarket.
+Use a dedicated API token restricted to the single Cloudflare account that owns RelayMarket. Do not use a Global API Key.
 
-The token must be able to deploy the Worker and read the remote D1 database state used by the production preflight. Cloudflare's Workers CI guidance recommends creating an API token from the **Edit Cloudflare Workers** template and restricting its account resources as narrowly as possible. RelayMarket's production script also runs `wrangler d1 migrations list ... --remote`, so the token must have sufficient D1 access for that read operation.
+The token needs only the permissions required by the current production script:
 
-Avoid Global API Keys and avoid broad all-account tokens.
+- permission to edit/deploy Cloudflare Workers for the RelayMarket account;
+- read access to D1, because the pre-deploy gate runs `wrangler d1 migrations list relaymarket --remote`.
+
+The current production script does **not** apply D1 migrations. If automatic migration application is added later, review and deliberately expand the token permissions rather than reusing a broader token in advance.
+
+Cloudflare's Workers CI guidance recommends API-token authentication and narrowing account resources as much as possible.
 
 ## What the workflow does
 
-The workflow runs only on `main`, uses the GitHub `production` environment, fails if Cloudflare credentials are absent, verifies authentication with `wrangler whoami`, and then executes:
+The workflow runs only on `main`, uses the GitHub `production` environment, fails closed if Cloudflare credentials are absent, validates authentication with `wrangler whoami`, and then executes:
 
 ```bash
 npm run cf:production
 ```
 
-That existing script runs tests, local smoke checks, release-readiness checks, the production public build, deploy checks, the remote D1 migration preflight, `wrangler deploy`, and post-deployment production verification.
+That existing script runs tests, local smoke checks, release-readiness checks, the production public build, deploy checks, the remote D1 migration-list preflight, `wrangler deploy`, and post-deployment production verification.
 
 ## Triggering a deployment
 
