@@ -34,10 +34,10 @@ jobs:
             exit 1
           fi
 
-      - name: Checkout main
+      - name: Checkout triggering commit
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.sha }}
 
       - name: Use Node.js 22
         uses: actions/setup-node@v4
@@ -49,3 +49,14 @@ jobs:
 
       - name: Deploy and verify RelayMarket production
         run: npm run cf:production
+
+      - name: Record deployment evidence
+        shell: bash
+        run: |
+          {
+            echo "## RelayMarket production deployment"
+            echo
+            echo "- Commit: \`${GITHUB_SHA}\`"
+            echo "- Origin: https://relaymarket.notary-labs.workers.dev"
+            echo "- Result: deployment and post-deployment verification passed"
+          } >> "$GITHUB_STEP_SUMMARY"
