@@ -7,6 +7,7 @@ const target = new URL(input);
 if (target.pathname !== '/' || target.search || target.hash) throw new Error('TARGET_ORIGIN must be an origin only, without a path, query, or fragment.');
 if (target.protocol !== 'https:' && !['127.0.0.1', 'localhost', '::1'].includes(target.hostname)) throw new Error('TARGET_ORIGIN must use HTTPS.');
 const origin = target.origin;
+const requireCurrentRelease = process.env.REQUIRE_CURRENT_RELEASE === '1';
 
 async function request(path, init = {}) {
   const controller = new AbortController();
@@ -43,6 +44,12 @@ const home = await homeResponse.text();
 includes(home, `<link rel="canonical" href="${origin}/">`, 'home canonical');
 includes(home, 'application/ld+json', 'home structured data');
 ok(!home.includes('__PUBLIC_ORIGIN__'), 'home still contains the PUBLIC_ORIGIN build placeholder');
+if (requireCurrentRelease) {
+  includes(home, 'Founding 100 open · live agent marketplace', 'home Founding 100 status');
+  includes(home, 'not live yet', 'home payment status');
+  includes(home, 'When production paid tasks are enabled, the RelayMarket platform fee is planned at 1%', 'home pricing truthfulness');
+  includes(home, 'Payment Protection is not live payment capture today', 'home payment protection truthfulness');
+}
 
 const faviconResponse = await request('/favicon.png');
 ok(faviconResponse.status === 200, `/favicon.png status ${faviconResponse.status}`);
@@ -66,6 +73,15 @@ for (const cardPath of ['/.well-known/agent-card.json', '/.well-known/agent.json
   ok(card.body.url === `${origin}/a2a`, `${cardPath} A2A URL mismatch`);
 }
 
+if (requireCurrentRelease) {
+  const mcpDiscovery = await json('/.well-known/mcp.json');
+  ok(mcpDiscovery.r.status === 200, `/.well-known/mcp.json status ${mcpDiscovery.r.status}`);
+  ok(mcpDiscovery.body.name === 'RelayMarket', '/.well-known/mcp.json returned the wrong service');
+  ok(mcpDiscovery.body.transport === 'streamable-http', '/.well-known/mcp.json transport mismatch');
+  ok(mcpDiscovery.body.endpoint === `${origin}/mcp`, '/.well-known/mcp.json MCP endpoint mismatch');
+  ok(mcpDiscovery.body.officialRegistryName === 'io.github.Kosta1985/relaymarket', '/.well-known/mcp.json registry identity mismatch');
+}
+
 const openapi = await json('/openapi.json');
 ok(openapi.r.status === 200, `/openapi.json status ${openapi.r.status}`);
 ok(openapi.body.info?.version === pkg.version, 'OpenAPI version mismatch');
@@ -77,7 +93,11 @@ const paymentConfig = await json('/api/v1/payments/config');
 ok(paymentConfig.r.status === 200, `/api/v1/payments/config status ${paymentConfig.r.status}`);
 ok(paymentConfig.body.platformFeeBps === 100, `platform fee must be 100 bps, got ${paymentConfig.body.platformFeeBps}`);
 ok(paymentConfig.body.platformFeePercent === 1, `platform fee must be 1%, got ${paymentConfig.body.platformFeePercent}`);
-ok(paymentConfig.body.provider !== 'mock', 'public deployment must never expose the mock payment provider');
+if (requireCurrentRelease) {
+  ok(paymentConfig.body.provider === 'disabled', `production payment provider must remain disabled for this release, got ${paymentConfig.body.provider}`);
+} else {
+  ok(paymentConfig.body.provider !== 'mock', 'public deployment must never expose the mock payment provider');
+}
 const quotedPayment = await json('/api/v1/payments/quote?amountMinor=100000&currency=AUD');
 ok(quotedPayment.r.status === 200, `/api/v1/payments/quote status ${quotedPayment.r.status}`);
 ok(quotedPayment.body.quote?.platformFeeMinor === 1000, 'AUD 1000 quote did not produce a 1% platform fee');
@@ -115,4 +135,4 @@ ok(llmsResponse.status === 200, `/llms.txt status ${llmsResponse.status}`);
 const llms = await llmsResponse.text();
 for (const path of ['/mcp','/a2a','/openapi.json','/api/v1/stats','/api/v1/payments/quote','/api/v1/payments/stats']) includes(llms, `${origin}${path}`, 'llms.txt');
 
-console.log(`RelayMarket ${pkg.version} public discovery black-box checks passed for ${origin}`);
+console.log(`RelayMarket ${pkg.version} public discovery black-box checks passed for ${origin}${requireCurrentRelease ? ' (current release required)' : ''}`);
