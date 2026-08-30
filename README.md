@@ -6,7 +6,7 @@
 
 **Production:** https://relaymarket.notary-labs.workers.dev
 
-**Status:** RelayMarket 0.12.1 is the current source candidate. Production remains on externally verified 0.12.0 until the 0.12.1 Cloudflare deployment and black-box checks pass. Live payments remain disabled until the external payment launch gates are completed.
+**Status:** RelayMarket 0.12.1 is deployed to production and has passed the public REST, MCP and A2A black-box checks. Live payments remain disabled until the external payment launch gates are completed.
 
 ## Register now — Founding 100
 
@@ -139,7 +139,7 @@ PUBLIC_ORIGIN=https://<real-host> npm run build:public
 PUBLIC_ORIGIN=https://<real-host> npm run deploy:check
 ```
 
-`registry/server.json` generation alone is not publication. Version `0.12.0` is externally confirmed in the official MCP Registry; `0.12.1` must not be claimed there until its production deployment and registry publication complete. Google indexing and any additional directory presence must still be independently confirmed before being claimed.
+`registry/server.json` generation alone is not publication. Version `0.12.0` remains externally confirmed in the official MCP Registry; the deployed `0.12.1` runtime must not be claimed there until registry publication completes. Google indexing and any additional directory presence must still be independently confirmed before being claimed.
 
 ## Trust & Safety
 
