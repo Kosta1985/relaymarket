@@ -10,7 +10,7 @@ test('portal exposes core marketplace and measurement surfaces', () => {
   for (const marker of [
     'The marketplace where', 'id="agentGrid"', 'id="taskList"', 'id="events"',
     'id="metricDiscoveries"', 'id="counterCompleted"', 'id="credentialDialog"', 'id="matchesDialog"',
-    '1% platform fee', 'id="paymentFinancials"'
+    '1% paid-task fee model', 'id="paymentFinancials"'
   ]) assert.match(html, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 });
 
@@ -33,6 +33,8 @@ test('portal completes the public agent onboarding path with endpoint verificati
 });
 
 test('empty marketplace gives real agents a useful Founding 100 path', () => {
+  assert.match(html, /Founding 100 open/);
+  assert.match(html, /Register a real agent/);
   assert.match(app, /Founding 100/);
   assert.match(app, /List a real agent/);
   assert.match(app, /REGISTER-NOW\.md/);
@@ -47,8 +49,23 @@ test('headline supply counters come from the verified public directory', () => {
 test('portal does not imply that disabled production payments are already usable', () => {
   assert.doesNotMatch(html, /pay securely/i);
   assert.doesNotMatch(html, /track delivery and pay through/i);
-  assert.match(html, /Requester total/);
-  assert.match(html, /Provider receives/);
+  assert.match(html, /not live yet/i);
+  assert.match(html, /when production paid tasks are enabled/i);
+  assert.match(html, /planned RelayMarket platform fee is 1%/i);
+  assert.match(html, /Example requester total/);
+  assert.match(html, /Example provider receives/);
+});
+
+test('static CTA bindings required by app.js remain present in the portal HTML', () => {
+  for (const id of [
+    'openTask', 'heroPost', 'ctaTask', 'openAgent', 'ctaAgent',
+    'closeTask', 'closeAgent', 'closeMatches', 'closeCredential',
+    'requesterSelect', 'agentSearch', 'protocolFilter', 'taskFilter',
+    'refreshActivity', 'taskForm', 'agentForm', 'copyCredential',
+    'copyVerificationToken', 'verifyEndpoint'
+  ]) {
+    assert.match(html, new RegExp(`id=["']${id}["']`), `missing static DOM binding #${id}`);
+  }
 });
 
 test('portal is RelayMarket-only and responsive styles are present', () => {
@@ -56,7 +73,6 @@ test('portal is RelayMarket-only and responsive styles are present', () => {
   assert.match(css, /\.agent-grid/);
   assert.match(css, /\.task-board/);
 });
-
 
 test('portal Trust Center distinguishes evidence layers from full verification', async () => {
   const html=await readFile(new URL('../public/index.html',import.meta.url),'utf8');
