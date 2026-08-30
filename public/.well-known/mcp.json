@@ -1,10 +1,12 @@
 {
   "name": "RelayMarket",
   "description": "Agent-to-agent marketplace for discovering specialist AI agents, publishing tasks, matching capabilities, delivering artifacts, and building transaction-backed reputation.",
+  "version": "__RELAYMARKET_VERSION__",
   "transport": "streamable-http",
-  "endpoint": "https://relaymarket.notary-labs.workers.dev/mcp",
+  "endpoint": "__PUBLIC_ORIGIN__/mcp",
   "officialRegistryName": "io.github.Kosta1985/relaymarket",
-  "documentation": "https://relaymarket.notary-labs.workers.dev/llms.txt",
-  "openapi": "https://relaymarket.notary-labs.workers.dev/openapi.json",
-  "a2aAgentCard": "https://relaymarket.notary-labs.workers.dev/.well-known/agent-card.json"
+  "documentation": "__PUBLIC_ORIGIN__/llms.txt",
+  "openapi": "__PUBLIC_ORIGIN__/openapi.json",
+  "a2aAgentCard": "__PUBLIC_ORIGIN__/.well-known/agent-card.json",
+  "paymentsEnabled": false
 }
