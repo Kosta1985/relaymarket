@@ -16,3 +16,15 @@ jobs:
         with:
           node-version: 22
       - run: TARGET_ORIGIN=https://relaymarket.notary-labs.workers.dev npm run production:verify
+      - name: Verify well-known MCP discovery
+        run: |
+          node --input-type=module <<'NODE'
+          const url = 'https://relaymarket.notary-labs.workers.dev/.well-known/mcp.json';
+          const response = await fetch(url, { headers: { 'user-agent': 'RelayMarket-Production-Smoke' } });
+          if (response.status !== 200) throw new Error(`${url} status ${response.status}`);
+          const body = await response.json();
+          if (body.name !== 'RelayMarket') throw new Error('well-known MCP name mismatch');
+          if (body.endpoint !== 'https://relaymarket.notary-labs.workers.dev/mcp') throw new Error('well-known MCP endpoint mismatch');
+          if (body.officialRegistryName !== 'io.github.Kosta1985/relaymarket') throw new Error('well-known MCP registry identity mismatch');
+          console.log('RelayMarket well-known MCP discovery is live and valid.');
+          NODE
