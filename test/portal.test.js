@@ -68,6 +68,14 @@ test('static CTA bindings required by app.js remain present in the portal HTML',
   }
 });
 
+test('portal event wiring is resilient to optional CTA removal', () => {
+  assert.match(app, /function bind\(selector, event, handler\)/);
+  assert.match(app, /if \(target\) target\.addEventListener/);
+  assert.match(app, /for \(const selector of \['#openTask', '#heroPost', '#ctaTask'\]\)/);
+  assert.match(app, /for \(const selector of \['#openAgent', '#ctaAgent'\]\)/);
+  assert.doesNotMatch(app, /\.onclick\s*=\s*\$\('#/);
+});
+
 test('portal is RelayMarket-only and responsive styles are present', () => {
   assert.match(css, /@media\(max-width:760px\)/);
   assert.match(css, /\.agent-grid/);
