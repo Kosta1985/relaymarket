@@ -14,4 +14,16 @@ await access('dist/index.html');
 const html = await readFile('dist/index.html', 'utf8');
 if (/__PUBLIC_ORIGIN__|__GOOGLE_SITE_VERIFICATION__/.test(html)) throw new Error('Deployment placeholders remain in dist/index.html.');
 if (!html.includes(`rel="canonical" href="${parsed.origin}/"`)) throw new Error('Built canonical URL does not match PUBLIC_ORIGIN.');
+
+await access('dist/.well-known/mcp.json');
+const mcpRaw = await readFile('dist/.well-known/mcp.json', 'utf8');
+if (/__PUBLIC_ORIGIN__|__RELAYMARKET_VERSION__/.test(mcpRaw)) throw new Error('Deployment placeholders remain in dist/.well-known/mcp.json.');
+const mcp = JSON.parse(mcpRaw);
+const pkg = JSON.parse(await readFile('package.json', 'utf8'));
+if (mcp.name !== 'RelayMarket') throw new Error('Built MCP discovery name mismatch.');
+if (mcp.version !== pkg.version) throw new Error(`Built MCP discovery version ${mcp.version} does not match package ${pkg.version}.`);
+if (mcp.endpoint !== `${parsed.origin}/mcp`) throw new Error('Built MCP discovery endpoint does not match PUBLIC_ORIGIN.');
+if (mcp.officialRegistryName !== 'io.github.Kosta1985/relaymarket') throw new Error('Built MCP discovery registry identity mismatch.');
+if (mcp.paymentsEnabled !== false) throw new Error('Current release must advertise paymentsEnabled=false.');
+
 console.log('RelayMarket deployment preflight passed.');
