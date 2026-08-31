@@ -6,15 +6,15 @@ const html = await readFile(new URL('../public/index.html', import.meta.url), 'u
 const app = await readFile(new URL('../public/app.js', import.meta.url), 'utf8');
 const css = await readFile(new URL('../public/styles.css', import.meta.url), 'utf8');
 
-test('portal exposes core marketplace and measurement surfaces', () => {
+test('portal exposes core TaskBay marketplace and measurement surfaces', () => {
   for (const marker of [
-    'The marketplace where', 'id="agentGrid"', 'id="taskList"', 'id="events"',
+    'Work moves', 'TaskBay', 'id="agentGrid"', 'id="taskList"', 'id="events"',
     'id="metricDiscoveries"', 'id="counterCompleted"', 'id="credentialDialog"', 'id="matchesDialog"',
-    '1% paid-task fee model', 'id="paymentFinancials"'
-  ]) assert.match(html, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    '1% when paid work goes live', 'id="paymentFinancials"'
+  ]) assert.match(html, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'));
 });
 
-test('portal mutations preserve identity, attribution and retry safety', () => {
+test('portal mutations preserve compatibility identity, attribution and retry safety', () => {
   assert.match(app, /x-relaymarket-source/);
   assert.match(app, /idempotency-key/);
   assert.match(app, /authorization/);
@@ -32,9 +32,9 @@ test('portal completes the public agent onboarding path with endpoint verificati
   assert.match(app, /eligible for public discovery and matching/);
 });
 
-test('empty marketplace gives real agents a useful Founding 100 path', () => {
-  assert.match(html, /Founding 100 open/);
-  assert.match(html, /Register a real agent/);
+test('empty marketplace gives real agents a useful founding-market path', () => {
+  assert.match(html, /Founding market/i);
+  assert.match(html, /List an agent/i);
   assert.match(app, /Founding 100/);
   assert.match(app, /List a real agent/);
   assert.match(app, /REGISTER-NOW\.md/);
@@ -50,10 +50,10 @@ test('portal does not imply that disabled production payments are already usable
   assert.doesNotMatch(html, /pay securely/i);
   assert.doesNotMatch(html, /track delivery and pay through/i);
   assert.match(html, /not live yet/i);
-  assert.match(html, /when production paid tasks are enabled/i);
-  assert.match(html, /planned RelayMarket platform fee is 1%/i);
+  assert.match(html, /when production payment capture is enabled/i);
+  assert.match(html, /planned platform fee is 1%|planned platform fee.*1%/i);
   assert.match(html, /Example requester total/);
-  assert.match(html, /Example provider receives/);
+  assert.match(html, /Example provider quote/);
 });
 
 test('static CTA bindings required by app.js remain present in the portal HTML', () => {
@@ -76,17 +76,19 @@ test('portal event wiring is resilient to optional CTA removal', () => {
   assert.doesNotMatch(app, /\.onclick\s*=\s*\$\('#/);
 });
 
-test('portal is RelayMarket-only and responsive styles are present', () => {
-  assert.match(css, /@media\(max-width:760px\)/);
+test('portal is TaskBay-branded while compatibility code remains intact and responsive', () => {
+  assert.match(html, /TaskBay/);
+  assert.doesNotMatch(html, /<span class="brand-word">RelayMarket<\/span>/);
+  assert.match(css, /@media\(max-width:(?:1000|680)px\)/);
   assert.match(css, /\.agent-grid/);
   assert.match(css, /\.task-board/);
 });
 
-test('portal Trust Center distinguishes evidence layers from full verification', async () => {
+test('portal trust architecture distinguishes evidence layers from full verification', async () => {
   const html=await readFile(new URL('../public/index.html',import.meta.url),'utf8');
   const js=await readFile(new URL('../public/app.js',import.meta.url),'utf8');
-  assert.match(html,/Trust Center/);
-  assert.match(html,/Registry evidence is not ownership/);
+  assert.match(html,/Trust architecture/i);
+  assert.match(html,/registration, endpoint control, business evidence, operator verification and transaction history/i);
   assert.match(html,/Verified operators/);
   assert.match(js,/\/api\/v1\/trust\/summary/);
   assert.match(js,/verified operator/);
