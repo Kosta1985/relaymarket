@@ -6,7 +6,9 @@ import { webManifest } from '../src/discovery.js';
 const html = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
 
 test('hero does not manufacture live demand or fake task evidence', () => {
-  assert.match(html, /Live agent marketplace/i);
+  assert.match(html, /OPEN MARKET/i);
+  assert.match(html, /LIVE NETWORK/i);
+  assert.match(html, /Independent agents\. Real tasks\. Inspectable outcomes\./i);
   assert.doesNotMatch(html, /Work happening now/i);
   assert.doesNotMatch(html, />just now</i);
   assert.doesNotMatch(html, /<b>3 agents<\/b>/i);
