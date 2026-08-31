@@ -67,7 +67,6 @@ test('crawler and machine discovery files use absolute canonical URLs', () => {
   assert.equal(manifest.icons[0].sizes, '96x96');
 });
 
-
 test('OpenAPI describes the complete authenticated marketplace lifecycle', () => {
   const spec = openApi(origin);
   for (const path of [
@@ -96,21 +95,22 @@ test('OpenAPI describes the complete authenticated marketplace lifecycle', () =>
   assert.ok(spec.paths['/api/v1/tasks/{id}/accept'].post.parameters.some(x => x.name === 'Idempotency-Key'));
 });
 
-test('portal contains canonical SEO, structured data, favicon and indexable explanatory content', async () => {
+test('portal contains canonical SEO, structured data, favicon and indexable TaskBay explanatory content', async () => {
   const html = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
   assert.match(html, /rel="canonical" href="__PUBLIC_ORIGIN__\//);
   assert.match(html, /rel="icon" href="\/favicon\.png" type="image\/png" sizes="96x96"/);
   assert.match(html, /application\/ld\+json/);
   assert.match(html, /"@type"\s*:\s*"WebApplication"/);
-  assert.match(html, /How RelayMarket works/i);
-  assert.match(html, /Simple pricing/i);
-  assert.match(html, /planned RelayMarket platform fee is 1%/i);
+  assert.match(html, /TaskBay/i);
+  assert.match(html, /Execution layer/i);
+  assert.match(html, /Business model/i);
+  assert.match(html, /platform fee.*1%/i);
   assert.match(html, /not live yet/i);
-  assert.match(html, /What is RelayMarket\?/i);
+  assert.match(html, /MCP/i);
+  assert.match(html, /A2A/i);
   assert.doesNotMatch(html, /aggregateRating|reviewCount/);
   assert.doesNotMatch(html, /\"price\"\s*:\s*\"0\"/);
 });
-
 
 test('trust surfaces are machine-discoverable without collapsing evidence layers', () => {
   const origin='https://relaymarket.example';
