@@ -1,4 +1,4 @@
-name: Production discovery smoke
+name: TaskBay production discovery smoke
 on:
   push:
     branches: [main]
@@ -15,17 +15,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: TARGET_ORIGIN=https://relaymarket.notary-labs.workers.dev npm run production:verify
-      - name: Probe pending well-known MCP discovery
-        continue-on-error: true
+      - name: Verify live compatibility host
+        run: TARGET_ORIGIN=https://relaymarket.notary-labs.workers.dev npm run production:verify
+      - name: Probe optional well-known MCP discovery
         run: |
           node --input-type=module <<'NODE'
           const url = 'https://relaymarket.notary-labs.workers.dev/.well-known/mcp.json';
-          const response = await fetch(url, { headers: { 'user-agent': 'RelayMarket-Production-Smoke' } });
-          if (response.status !== 200) throw new Error(`${url} status ${response.status}; expected until the source metadata is deployed to Cloudflare`);
+          const response = await fetch(url, { headers: { 'user-agent': 'TaskBay-Production-Smoke' } });
+          if (response.status === 404) {
+            console.log('TaskBay well-known MCP alias is not deployed yet (HTTP 404); core production verification remains authoritative during compatibility migration.');
+            process.exit(0);
+          }
+          if (response.status !== 200) throw new Error(`${url} unexpected status ${response.status}`);
           const body = await response.json();
-          if (body.name !== 'RelayMarket') throw new Error('well-known MCP name mismatch');
+          if (!['TaskBay', 'RelayMarket'].includes(body.name)) throw new Error('well-known MCP name mismatch');
           if (body.endpoint !== 'https://relaymarket.notary-labs.workers.dev/mcp') throw new Error('well-known MCP endpoint mismatch');
           if (body.officialRegistryName !== 'io.github.Kosta1985/relaymarket') throw new Error('well-known MCP registry identity mismatch');
-          console.log('RelayMarket well-known MCP discovery is live and valid.');
+          console.log(`TaskBay well-known MCP discovery is live and valid under compatibility identity (${body.name}).`);
           NODE
