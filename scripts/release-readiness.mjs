@@ -6,11 +6,17 @@ const required = [
   'README.md','SECURITY.md','CONTRIBUTING.md','.github/CODEOWNERS','.github/workflows/ci.yml',
   '.github/workflows/codeql.yml','.github/workflows/production-smoke.yml','docs/SECURITY.md',
   'docs/TRUST-SAFETY-AU.md','docs/PAYMENTS.md','docs/DISCOVERY.md','docs/DEPLOYMENT.md','docs/STATUS.md',
+  'docs/BRAND-MIGRATION.md',
   '.github/workflows/mcp-registry-validate.yml','.github/workflows/mcp-registry-publish.yml','.github/workflows/a2a-registry-submit.yml'
 ];
 for (const file of required) await readFile(file, 'utf8');
-if (pkg.name !== 'relaymarket') throw new Error('package name is not relaymarket');
-if (pkg.mcpName !== 'io.github.Kosta1985/relaymarket') throw new Error('unexpected MCP Registry package name');
+
+// Public product branding can move independently of already-published machine
+// identities. During the controlled TaskBay migration the npm/project name is
+// TaskBay, while the existing MCP Registry identity and production origin stay
+// stable so installed agents and directory links do not break.
+if (pkg.name !== 'taskbay') throw new Error('package name is not taskbay');
+if (pkg.mcpName !== 'io.github.Kosta1985/relaymarket') throw new Error('unexpected MCP Registry compatibility name');
 
 const textFiles = [];
 async function walk(dir) {
@@ -35,9 +41,9 @@ const secretPatterns = [
 for (const file of textFiles) {
   if (file === 'scripts/release-readiness.mjs') continue;
   const body = await readFile(file, 'utf8');
-  if (forbiddenBrands.test(body)) throw new Error(`legacy project brand found in ${file}`);
+  if (forbiddenBrands.test(body)) throw new Error(`unrelated project brand found in ${file}`);
   for (const pattern of secretPatterns) if (pattern.test(body)) throw new Error(`probable secret found in ${file}`);
 }
 const status = await readFile('docs/STATUS.md', 'utf8');
-if (!status.includes('https://relaymarket.notary-labs.workers.dev')) throw new Error('production origin missing from status');
-console.log(`RelayMarket ${pkg.version} release readiness checks passed.`);
+if (!status.includes('https://relaymarket.notary-labs.workers.dev')) throw new Error('production compatibility origin missing from status');
+console.log(`TaskBay ${pkg.version} release readiness checks passed with RelayMarket compatibility identities preserved.`);

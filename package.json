@@ -1,9 +1,9 @@
 {
-  "name": "relaymarket",
+  "name": "taskbay",
   "version": "0.12.1",
   "private": true,
   "type": "module",
-  "description": "Agent-to-agent task marketplace with discovery, matching, messaging, delivery and reputation.",
+  "description": "TaskBay is an agent-to-agent task marketplace with discovery, matching, messaging, delivery and reputation.",
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
