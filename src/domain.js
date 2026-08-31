@@ -45,7 +45,9 @@ export function normalizeMessage(taskId,input={}){
 export function scoreMatch(agent,task){
   if(!agent.availability)return 0;
   const needed=new Set(task.requiredCapabilities||[]),caps=new Set(agent.capabilities||[]);
-  const capabilityScore=needed.size?[...needed].filter(x=>caps.has(x)).length/needed.size:1;
+  const matchedCapabilities=needed.size?[...needed].filter(x=>caps.has(x)).length:0;
+  if(needed.size&&matchedCapabilities===0)return 0;
+  const capabilityScore=needed.size?matchedCapabilities/needed.size:1;
   const preferred=task.preferredProtocols||[],protocols=new Set(agent.protocols||[]);
   const protocolScore=preferred.length?(preferred.some(x=>protocols.has(x))?1:0):1;
   const reputation=agent.reputation?.rating?agent.reputation.rating/5:0.6;
