@@ -2,18 +2,12 @@ name: TaskBay Cloudflare production deploy
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'deploy/production-request.txt'
 
 permissions:
   contents: read
 
 concurrency:
-  # Keep the historical technical concurrency identity during the compatibility migration.
-  group: relaymarket-production-deploy
+  group: taskbay-production-deploy
   cancel-in-progress: false
 
 jobs:
@@ -87,6 +81,7 @@ jobs:
             echo "## TaskBay production deployment"
             echo
             echo "- Commit: \`${GITHUB_SHA}\`"
-            echo "- Compatibility origin: https://relaymarket.notary-labs.workers.dev"
+            echo "- Current technical origin: https://relaymarket.notary-labs.workers.dev"
+            echo "- Product brand: TaskBay"
             echo "- Result: deployment and current-release verification passed"
           } >> "$GITHUB_STEP_SUMMARY"
