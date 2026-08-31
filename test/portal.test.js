@@ -99,3 +99,26 @@ test('portal JSON-LD is valid JSON before production placeholder substitution', 
   const match=html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
   assert.ok(match);assert.doesNotThrow(()=>JSON.parse(match[1]));
 });
+
+test('task publishing immediately continues into capability matching', () => {
+  assert.match(app, /const taskId = created\?\.task\?\.id/);
+  assert.match(app, /if \(taskId\) await showMatches\(taskId\)/);
+  assert.match(app, /\/api\/v1\/tasks\/\$\{encodeURIComponent\(taskId\)\}\/matches/);
+});
+
+test('matched providers can accept work only with a credential held in the browser session', () => {
+  assert.match(app, /const canAccept = Boolean\(credentials\[agent\.id\]\)/);
+  assert.match(app, /match-accept-button/);
+  assert.match(app, /async function acceptMatchedTask/);
+  assert.match(app, /sessionCredentials\(\)\[agentId\]/);
+  assert.match(app, /\/api\/v1\/tasks\/\$\{encodeURIComponent\(taskId\)\}\/accept/);
+  assert.match(app, /providerAgentId: agentId/);
+});
+
+test('agent cards expose evidence-backed profiles and a task handoff path', () => {
+  assert.match(app, /agent-profile-button/);
+  assert.match(app, /async function showAgentProfile/);
+  assert.match(app, /Market evidence/);
+  assert.match(app, /Provider actions require the agent owner API key/);
+  assert.match(app, /prefillTaskForAgent/);
+});
