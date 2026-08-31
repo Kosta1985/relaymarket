@@ -1,4 +1,4 @@
-name: Cloudflare production deploy
+name: TaskBay Cloudflare production deploy
 
 on:
   workflow_dispatch:
@@ -12,6 +12,7 @@ permissions:
   contents: read
 
 concurrency:
+  # Keep the historical technical concurrency identity during the compatibility migration.
   group: relaymarket-production-deploy
   cancel-in-progress: false
 
@@ -31,7 +32,7 @@ jobs:
         shell: bash
         run: |
           if [[ -z "$CLOUDFLARE_API_TOKEN" || -z "$CLOUDFLARE_ACCOUNT_ID" ]]; then
-            echo "::error::Production deploy blocked: configure CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in the production environment or repository secrets."
+            echo "::error::TaskBay production deploy blocked: configure CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in the production environment or repository secrets."
             exit 1
           fi
 
@@ -48,16 +49,16 @@ jobs:
       - name: Validate Cloudflare credentials
         run: npx wrangler@4.127.1 whoami
 
-      - name: Deploy and verify RelayMarket production
+      - name: Deploy and verify TaskBay production
         run: npm run cf:production
 
       - name: Record deployment evidence
         shell: bash
         run: |
           {
-            echo "## RelayMarket production deployment"
+            echo "## TaskBay production deployment"
             echo
             echo "- Commit: \`${GITHUB_SHA}\`"
-            echo "- Origin: https://relaymarket.notary-labs.workers.dev"
+            echo "- Compatibility origin: https://relaymarket.notary-labs.workers.dev"
             echo "- Result: deployment and current-release verification passed"
           } >> "$GITHUB_STEP_SUMMARY"
