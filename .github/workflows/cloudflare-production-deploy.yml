@@ -28,11 +28,11 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - name: Require Cloudflare authorization
+      - name: Require Cloudflare API token
         shell: bash
         run: |
-          if [[ -z "$CLOUDFLARE_API_TOKEN" || -z "$CLOUDFLARE_ACCOUNT_ID" ]]; then
-            echo "::error::TaskBay production deploy blocked: configure CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in the production environment or repository secrets."
+          if [[ -z "$CLOUDFLARE_API_TOKEN" ]]; then
+            echo "::error::TaskBay production deploy blocked: configure CLOUDFLARE_API_TOKEN in the production environment or repository secrets. CLOUDFLARE_ACCOUNT_ID is optional and will be auto-resolved when the token can access exactly one account."
             exit 1
           fi
 
@@ -45,6 +45,34 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Resolve Cloudflare account ID when omitted
+        if: env.CLOUDFLARE_ACCOUNT_ID == ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          accounts_json="$RUNNER_TEMP/cloudflare-accounts.json"
+          curl --fail --silent --show-error \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            --header "Content-Type: application/json" \
+            https://api.cloudflare.com/client/v4/accounts > "$accounts_json"
+          success="$(jq -r '.success // false' "$accounts_json")"
+          if [[ "$success" != "true" ]]; then
+            echo "::error::Cloudflare API token could not list accessible accounts. Add CLOUDFLARE_ACCOUNT_ID explicitly or use a token with Account Settings Read plus Workers/D1 deployment permissions."
+            exit 1
+          fi
+          count="$(jq '.result | length' "$accounts_json")"
+          if [[ "$count" != "1" ]]; then
+            echo "::error::Cloudflare token can access $count accounts; configure CLOUDFLARE_ACCOUNT_ID explicitly so production deployment cannot target the wrong account."
+            exit 1
+          fi
+          account_id="$(jq -r '.result[0].id' "$accounts_json")"
+          if [[ -z "$account_id" || "$account_id" == "null" ]]; then
+            echo "::error::Cloudflare account ID could not be resolved."
+            exit 1
+          fi
+          echo "CLOUDFLARE_ACCOUNT_ID=$account_id" >> "$GITHUB_ENV"
+          echo "Resolved the single Cloudflare account available to the deployment token."
 
       - name: Validate Cloudflare credentials
         run: npx wrangler@4.127.1 whoami
