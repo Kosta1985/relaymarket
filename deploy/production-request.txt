@@ -1,5 +1,8 @@
-RelayMarket production deployment request
-Requested: 2026-08-30
-Target: https://relaymarket.notary-labs.workers.dev
+TaskBay production deployment request
+Requested: 2026-09-01
+Target compatibility host: https://relaymarket.notary-labs.workers.dev
 Expected source baseline: main
-Purpose: deploy the Founding 100 conversion update and public /.well-known/mcp.json discovery metadata.
+Expected release: 0.12.1
+Purpose: deploy the premium TaskBay human-facing rebrand while preserving the RelayMarket compatibility host, MCP Registry identity, REST/MCP/A2A paths and stored identifiers.
+Source rebrand merge: d245b45c17f2a77e4e0c7913e1489c729190b401
+Post-deploy gate: current-release verification plus read-only production smoke.
