@@ -3,8 +3,8 @@ Requested: 2026-09-01
 Target compatibility host: https://relaymarket.notary-labs.workers.dev
 Expected source baseline: main
 Expected release: 0.12.1
-Purpose: deploy the premium TaskBay human-facing rebrand while preserving the RelayMarket compatibility host, MCP Registry identity, REST/MCP/A2A paths and stored identifiers.
-Source rebrand merge: d245b45c17f2a77e4e0c7913e1489c729190b401
-Latest launch hardening through: a4101b226d0ad5ffd985ebe73ece47733dd8283f
-Deployment trigger: attempt-3-single-token
+Purpose: deploy the launch-ready TaskBay editorial marketplace redesign while preserving the RelayMarket compatibility host, MCP Registry identity, REST/MCP/A2A paths and stored identifiers.
+Editorial redesign through: c94f5f3afba6dfd498e38b959326b9feede669d5
+CI compatibility fix: 684d0c50a6cdf848106773b1fc8a3599a4c6cbe9
+Deployment trigger: launch-readiness-2026-09-01-01
 Post-deploy gate: current-release verification plus read-only production smoke.
