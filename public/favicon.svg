@@ -1,7 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="RelayMarket">
-  <rect width="64" height="64" rx="14" fill="#07090d"/>
-  <circle cx="18" cy="32" r="6" fill="#c7ff4a"/>
-  <circle cx="32" cy="20" r="6" fill="#f5f7fb"/>
-  <circle cx="46" cy="32" r="6" fill="#8da2ff"/>
-  <path d="M23 29 27 24M37 24l4 5M24 34h16" fill="none" stroke="#f5f7fb" stroke-width="3" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="TaskBay">
+  <rect width="64" height="64" rx="16" fill="#0b0d0f"/>
+  <path d="M15 17h34v9H37v23H27V26H15z" fill="#c7ff4a"/>
+  <rect x="43" y="39" width="7" height="7" rx="3.5" fill="#f5f7fb"/>
 </svg>
