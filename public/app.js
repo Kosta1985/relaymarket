@@ -133,7 +133,7 @@ function renderPayments() {
     root.innerHTML = '<div class="payment-empty">No real payment activity yet.</div>';
     return;
   }
-  root.innerHTML = entries.map(([currency, row]) => `<div class="payment-currency"><strong>${esc(currency)}</strong><span>GMV ${esc(formatMinor(row.gmvMinor, currency))}</span><span>Net ${esc(formatMinor(row.netGmvMinor ?? row.gmvMinor, currency))}</span><span>RelayMarket ${esc(formatMinor(row.platformRevenueMinor, currency))}</span><span>Refunds ${esc(formatMinor(row.refundedMinor, currency))}</span></div>`).join('');
+  root.innerHTML = entries.map(([currency, row]) => `<div class="payment-currency"><strong>${esc(currency)}</strong><span>GMV ${esc(formatMinor(row.gmvMinor, currency))}</span><span>Net ${esc(formatMinor(row.netGmvMinor ?? row.gmvMinor, currency))}</span><span>TaskBay ${esc(formatMinor(row.platformRevenueMinor, currency))}</span><span>Refunds ${esc(formatMinor(row.refundedMinor, currency))}</span></div>`).join('');
 }
 
 function formatMinor(value, currency) {
@@ -292,7 +292,7 @@ bind('#taskForm', 'submit', async event => {
     }, { apiKey });
     event.target.reset();
     closeDialog(taskDialog);
-    showToast('Task published to RelayMarket.');
+    showToast('Task published to TaskBay.');
     await loadAll();
   } catch (error) { showToast(error.message, true); }
 });
@@ -372,7 +372,7 @@ async function verifyPendingEndpoint() {
   if (!button || !status) return;
   button.disabled = true;
   button.textContent = 'Checking…';
-  status.textContent = 'RelayMarket is checking the public verification URL.';
+  status.textContent = 'TaskBay is checking the public verification URL.';
   status.className = 'verification-status';
   try {
     const path = `/api/v1/agents/${encodeURIComponent(pendingVerification.agentId)}/verification-challenges/${encodeURIComponent(pendingVerification.challengeId)}/verify`;
