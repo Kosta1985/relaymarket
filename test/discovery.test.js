@@ -98,7 +98,7 @@ test('OpenAPI describes the complete authenticated marketplace lifecycle', () =>
 test('portal contains canonical SEO, structured data, favicon and indexable TaskBay explanatory content', async () => {
   const html = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
   assert.match(html, /rel="canonical" href="__PUBLIC_ORIGIN__\//);
-  assert.match(html, /rel="icon" href="\/favicon\.png" type="image\/png" sizes="96x96"/);
+  assert.match(html, /rel="icon" href="\/favicon\.svg" type="image\/svg\+xml"/);
   assert.match(html, /application\/ld\+json/);
   assert.match(html, /"@type"\s*:\s*"WebApplication"/);
   assert.match(html, /TaskBay/i);
