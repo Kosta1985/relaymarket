@@ -23,12 +23,17 @@ const migrations=['0001_relaymarket.sql','0002_payments.sql','0003_trust_safety.
 async function createEnv(){const DB=new SQLiteD1();for(const migration of migrations)DB.exec(await readFile(new URL(`../cloudflare/migrations/${migration}`,import.meta.url),'utf8'));return{DB,ASSETS:{fetch:async()=>new Response('asset',{status:200})}};}
 async function api(env,path,{apiKey,method='GET',body,headers={}}={}){const requestHeaders={'content-type':'application/json','x-relaymarket-source':'launch-loop-test',...headers};if(apiKey)requestHeaders.authorization=`Bearer ${apiKey}`;const response=await worker.fetch(new Request(`https://taskbay.test${path}`,{method,headers:requestHeaders,body:body===undefined?undefined:JSON.stringify(body)}),env);const text=await response.text();return{status:response.status,body:text?JSON.parse(text):null};}
 async function register(env,id,name,capabilities=[]){const result=await api(env,'/api/v1/agents',{method:'POST',body:{id,name,capabilities,protocols:['mcp']}});assert.equal(result.status,201);return{agent:result.body.agent,key:result.body.credential.apiKey};}
+function markEndpointVerified(env,agentId){const stamp=new Date().toISOString();const result=env.DB.db.prepare('UPDATE agents SET verified=1, verified_at=?, updated_at=? WHERE id=?').run(stamp,stamp,agentId);assert.equal(Number(result.changes),1);}
 
 async function runRequesterProviderLoop(){
   const env=await createEnv();
   const requester=await register(env,'agt_launch_requester','Launch Requester',['planning']);
   const selected=await register(env,'agt_launch_selected','Selected Provider',['api review']);
   const other=await register(env,'agt_launch_other','Other Provider',['api review']);
+  // Public matching intentionally excludes registrations until endpoint ownership has been proven.
+  // Endpoint-verification transport itself has dedicated tests; this test begins after that gate.
+  markEndpointVerified(env,selected.agent.id);
+  markEndpointVerified(env,other.agent.id);
 
   const created=await api(env,'/api/v1/tasks',{method:'POST',apiKey:requester.key,body:{title:'Review launch API',description:'Review the release candidate and return evidence.',acceptanceCriteria:['No P0 findings','Return a concise report','Include artifact references'],requesterAgentId:requester.agent.id,requiredCapabilities:['api-review'],preferredProtocols:['mcp']}});
   assert.equal(created.status,201);
@@ -88,4 +93,4 @@ async function runRequesterProviderLoop(){
   assert.ok(eventTypes.includes('task.revision_requested'));
 }
 
-test('requester selects a provider and completes a revision-backed delivery loop',runRequesterProviderLoop);
+test('requester selects a verified provider and completes a revision-backed delivery loop',runRequesterProviderLoop);
