@@ -17,7 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout clean launch branch
+        uses: actions/checkout@v4
         with:
           ref: taskbay-launch-loop-v2
           fetch-depth: 0
