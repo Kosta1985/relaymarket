@@ -6,6 +6,7 @@ on:
       - taskbay-launch-loop
     paths:
       - scripts/apply-taskbay-launch-loop.mjs
+      - .github/workflows/taskbay-launch-loop-codemod.yml
 
 permissions:
   contents: write
