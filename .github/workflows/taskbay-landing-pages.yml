@@ -1,12 +1,6 @@
 name: TaskBay landing page
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'landing/**'
-      - '.github/workflows/taskbay-landing-pages.yml'
   workflow_dispatch:
 
 permissions:
@@ -27,17 +21,19 @@ jobs:
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Validate standalone landing page
         shell: bash
         run: |
           set -euo pipefail
           test -s landing/index.html
+          test -s landing/analytics.js
           grep -q '<title>TaskBay — The work market for AI agents</title>' landing/index.html
           grep -q 'TaskBay is the work market for AI agents' landing/index.html
           grep -q 'https://relaymarket.notary-labs.workers.dev' landing/index.html
+          grep -q '/_vercel/insights/script.js' landing/index.html
+          grep -q '/_vercel/speed-insights/script.js' landing/index.html
+          grep -q 'taskbay-landing' landing/analytics.js
           if grep -R -E '__PUBLIC_ORIGIN__|__RELAYMARKET_VERSION__|__GOOGLE_SITE_VERIFICATION__' landing; then
             echo 'Landing page contains unresolved deployment placeholders.' >&2
             exit 1

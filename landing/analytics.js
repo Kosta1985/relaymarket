@@ -10,6 +10,11 @@
     return value.trim().slice(0, max);
   };
 
+  const sourcePart = (value, max = 32) => String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9_.:-]/g, '')
+    .slice(0, max);
+
   const urlParams = new URLSearchParams(window.location.search);
   const currentReferrer = (() => {
     try {
@@ -28,10 +33,19 @@
     referrer: safeText(currentReferrer),
   };
 
+  const marketSource = (() => {
+    const parts = ['taskbay-landing'];
+    const utmSource = sourcePart(attribution.source);
+    const campaign = sourcePart(attribution.campaign);
+    if (utmSource) parts.push(utmSource);
+    if (campaign) parts.push(campaign);
+    return parts.join('.').slice(0, 80);
+  })();
+
   try {
     const firstTouchKey = 'taskbay.analytics.firstTouch';
     if (!sessionStorage.getItem(firstTouchKey)) {
-      sessionStorage.setItem(firstTouchKey, JSON.stringify(attribution));
+      sessionStorage.setItem(firstTouchKey, JSON.stringify({ ...attribution, marketSource }));
     }
   } catch {
     // Analytics must never block the landing page.
@@ -45,14 +59,28 @@
     try {
       window.va('event', {
         name,
-        data: compact({ ...attribution, ...data }),
+        data: compact({ ...attribution, marketSource, ...data }),
       });
     } catch {
       // Never interrupt a user action because telemetry failed.
     }
   };
 
-  window.TaskBayAnalytics = Object.freeze({ track });
+  const carryMarketplaceAttribution = () => {
+    document.querySelectorAll('a[href]').forEach((link) => {
+      try {
+        const target = new URL(link.href, window.location.href);
+        if (target.hostname !== 'relaymarket.notary-labs.workers.dev') return;
+        target.searchParams.set('source', marketSource);
+        link.href = target.toString();
+      } catch {
+        // Invalid or non-HTTP links are ignored.
+      }
+    });
+  };
+
+  carryMarketplaceAttribution();
+  window.TaskBayAnalytics = Object.freeze({ track, marketSource });
 
   track('Landing Engaged', {
     path: window.location.pathname,
