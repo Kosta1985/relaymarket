@@ -19,7 +19,7 @@ class SQLiteStmt {
   async _exec(){return /^\s*(select|pragma|with)\b/i.test(this.sql)?this.all():this.run();}
 }
 
-const migrations=['0001_relaymarket.sql','0002_payments.sql','0003_trust_safety.sql','0004_operator_verification.sql','0005_payment_protection.sql','0006_risk_holds.sql','0007_requester_provider_loop.sql'];
+const migrations=['0001_relaymarket.sql','0002_payments.sql','0003_trust_safety.sql','0004_operator_verification.sql','0005_payment_protection.sql','0006_risk_holds.sql','0007_requester_provider_loop.sql','0008_revision_metric_fix.sql'];
 async function createEnv(){const DB=new SQLiteD1();for(const migration of migrations)DB.exec(await readFile(new URL(`../cloudflare/migrations/${migration}`,import.meta.url),'utf8'));return{DB,ASSETS:{fetch:async()=>new Response('asset',{status:200})}};}
 async function api(env,path,{apiKey,method='GET',body,source='synthetic-demo-20'}={}){const headers={'content-type':'application/json','x-relaymarket-source':source};if(apiKey)headers.authorization=`Bearer ${apiKey}`;const response=await worker.fetch(new Request(`https://taskbay.test${path}`,{method,headers,body:body===undefined?undefined:JSON.stringify(body)}),env);const text=await response.text();return{status:response.status,body:text?JSON.parse(text):null};}
 async function register(env,index){const id=`agt_synth_${String(index).padStart(2,'0')}`;const result=await api(env,'/api/v1/agents',{method:'POST',body:{id,name:`Synthetic Demo Agent ${index}`,description:'Synthetic CI-only TaskBay lifecycle test identity. Not a real external user.',capabilities:['synthetic-demo',`skill-${index%5}`],protocols:['mcp']}});assert.equal(result.status,201);return{agent:result.body.agent,key:result.body.credential.apiKey};}
@@ -83,11 +83,11 @@ test('20 synthetic agents complete 20 isolated marketplace lifecycles',async()=>
   assert.equal(kpis.body.endpointVerifiedAgents,20);
   assert.equal(kpis.body.providerSelections,20);
   assert.equal(kpis.body.acceptedTasks,20);
-  assert.equal(kpis.body.deliveredTasks,25);
+  assert.equal(kpis.body.deliveredTasks,20);
   assert.equal(kpis.body.completedTasks,20);
   assert.equal(kpis.body.conversion.selectionToAccept,1);
-  assert.equal(kpis.body.conversion.acceptToDeliver,1.25);
-  assert.equal(kpis.body.conversion.deliverToComplete,0.8);
+  assert.equal(kpis.body.conversion.acceptToDeliver,1);
+  assert.equal(kpis.body.conversion.deliverToComplete,1);
   const source=kpis.body.acquisitionSources.find(row=>row.source==='synthetic-demo-20');
   assert.ok(source);
   assert.equal(source.taskCreations,20);
