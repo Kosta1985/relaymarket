@@ -21,6 +21,7 @@ jobs:
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
+    environment: production
     timeout-minutes: 30
     env:
       CI: 'true'
@@ -38,14 +39,15 @@ jobs:
             echo "Cloudflare deployment credential is configured."
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::TaskBay source is CI-ready but has not been deployed by this workflow because CLOUDFLARE_API_TOKEN is unavailable."
+            echo "::warning::TaskBay source is CI-ready but has not been deployed by this workflow because CLOUDFLARE_API_TOKEN is unavailable in repository secrets or the production environment."
             {
               echo "## TaskBay deployment readiness"
               echo
               echo "- Tested commit: \`${DEPLOY_SHA}\`"
               echo "- CI gate: passed"
+              echo "- GitHub environment: production"
               echo "- Cloudflare deployment executed: no"
-              echo "- Reason: deployment credential unavailable"
+              echo "- Reason: CLOUDFLARE_API_TOKEN unavailable"
               echo "- Production state must continue to be verified independently"
             } >> "$GITHUB_STEP_SUMMARY"
           fi
@@ -98,6 +100,10 @@ jobs:
         if: steps.readiness.outputs.ready == 'true'
         run: npm run cf:production
 
+      - name: Verify complete TaskBay launch surface
+        if: steps.readiness.outputs.ready == 'true'
+        run: TARGET_ORIGIN=https://relaymarket.notary-labs.workers.dev node scripts/launch-blackbox.mjs
+
       - name: Record verified deployment evidence
         if: steps.readiness.outputs.ready == 'true'
         shell: bash
@@ -108,6 +114,9 @@ jobs:
             echo "- Commit: \`${DEPLOY_SHA}\`"
             echo "- Current technical origin: https://relaymarket.notary-labs.workers.dev"
             echo "- Product brand: TaskBay"
+            echo "- GitHub environment: production"
             echo "- Cloudflare deployment executed: yes"
-            echo "- Post-deploy verification: passed"
+            echo "- Core post-deploy verification: passed"
+            echo "- Full TaskBay launch black-box: passed"
+            echo "- Production payment capture: disabled"
           } >> "$GITHUB_STEP_SUMMARY"
