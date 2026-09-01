@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "test": "node --test",
+    "test:synthetic": "node --test test/synthetic-market-20.test.js",
     "smoke": "node scripts/smoke.mjs",
     "build:public": "node scripts/build-public.mjs",
     "registry:generate": "node scripts/generate-mcp-server-json.mjs",

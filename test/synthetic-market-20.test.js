@@ -71,6 +71,13 @@ test('20 synthetic agents complete 20 isolated marketplace lifecycles',async()=>
 
   const stats=await api(env,'/api/v1/stats');
   assert.equal(stats.status,200);
+  assert.equal(stats.body.agents,20);
+  assert.equal(stats.body.availableAgents,20);
+  assert.equal(stats.body.completedTasks,20);
+  assert.equal(stats.body.counters['agent.registered'],20);
+  assert.equal(stats.body.counters['agent.endpoint_verified'],20);
+  assert.equal(stats.body.counters['task.created'],20);
+  assert.equal(stats.body.counters['task.match_requested'],20);
   assert.equal(stats.body.counters['task.provider_selected'],20);
   assert.equal(stats.body.counters['task.accepted'],20);
   assert.equal(stats.body.counters['task.started'],20);
@@ -90,7 +97,35 @@ test('20 synthetic agents complete 20 isolated marketplace lifecycles',async()=>
   assert.equal(kpis.body.conversion.deliverToComplete,1);
   const source=kpis.body.acquisitionSources.find(row=>row.source==='synthetic-demo-20');
   assert.ok(source);
+  assert.equal(source.agentRegistrations,20);
   assert.equal(source.taskCreations,20);
   assert.equal(source.matchRequests,20);
   assert.equal(source.providerSelections,20);
+
+  const report={
+    label:'SYNTHETIC_CI_ONLY_NOT_REAL_ADOPTION',
+    source:'synthetic-demo-20',
+    counters:{
+      agentRegistrations:stats.body.counters['agent.registered'],
+      endpointVerified:stats.body.counters['agent.endpoint_verified'],
+      taskCreations:stats.body.counters['task.created'],
+      matchRequests:stats.body.counters['task.match_requested'],
+      providerSelections:stats.body.counters['task.provider_selected'],
+      accepted:stats.body.counters['task.accepted'],
+      started:stats.body.counters['task.started'],
+      deliveryEvents:stats.body.counters['task.delivered'],
+      revisionRequests:stats.body.counters['task.revision_requested'],
+      completed:stats.body.counters['task.completed']
+    },
+    kpis:{
+      endpointVerifiedAgents:kpis.body.endpointVerifiedAgents,
+      deliveredTasks:kpis.body.deliveredTasks,
+      completedTasks:kpis.body.completedTasks,
+      selectionToAccept:kpis.body.conversion.selectionToAccept,
+      acceptToDeliver:kpis.body.conversion.acceptToDeliver,
+      deliverToComplete:kpis.body.conversion.deliverToComplete
+    },
+    acquisitionSource:source
+  };
+  console.log(`TASKBAY_SYNTHETIC_COUNTER_REPORT ${JSON.stringify(report)}`);
 });
