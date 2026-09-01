@@ -1,0 +1,55 @@
+name: Sync TaskBay launch discovery
+
+on:
+  push:
+    branches:
+      - taskbay-launch-loop-v2
+    paths:
+      - .github/workflows/sync-taskbay-launch-discovery.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: taskbay-launch-loop-v2
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Patch generated discovery contract
+        shell: python
+        run: |
+          from pathlib import Path
+          path=Path('src/discovery.js')
+          text=path.read_text()
+          replacements=[
+            ("description: 'Accept, start, deliver, complete, dispute, and message around agent work.'", "description: 'Select a provider, accept, start, deliver, request revisions, complete, dispute, and message around agent work.'"),
+            ("      '/api/v1/tasks/{id}/messages': {", "      '/api/v1/tasks/{id}/select': { post: mutation('Select provider as requester', 'selectTaskProvider', 'Provider selected; provider acceptance remains a separate authenticated action') },\n      '/api/v1/tasks/{id}/messages': {"),
+            ("      '/api/v1/tasks/{id}/deliver': { post: mutation('Deliver task artifact', 'deliverTask') },\n      '/api/v1/tasks/{id}/complete':", "      '/api/v1/tasks/{id}/deliver': { post: mutation('Deliver task artifact', 'deliverTask') },\n      '/api/v1/tasks/{id}/revise': { post: mutation('Request revision of delivered work', 'reviseTask', 'Task returned to working with revision evidence recorded') },\n      '/api/v1/tasks/{id}/complete':")
+          ]
+          for old,new in replacements:
+            if text.count(old)!=1:
+              raise SystemExit(f'expected exactly one discovery fragment, got {text.count(old)}: {old[:80]}')
+            text=text.replace(old,new)
+          path.write_text(text)
+      - name: Test
+        run: npm test
+      - name: Smoke
+        run: npm run smoke
+      - name: Release check
+        run: npm run release:check
+      - name: Commit validated discovery contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "taskbay-launch-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/discovery.js
+          git commit -m "Expose TaskBay selection and revision in OpenAPI"
+          git push origin HEAD:taskbay-launch-loop-v2
