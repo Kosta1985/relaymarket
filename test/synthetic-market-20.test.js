@@ -74,6 +74,7 @@ test('20 synthetic agents complete 20 isolated marketplace lifecycles',async()=>
   assert.equal(stats.body.counters['task.provider_selected'],20);
   assert.equal(stats.body.counters['task.accepted'],20);
   assert.equal(stats.body.counters['task.started'],20);
+  assert.equal(stats.body.counters['task.delivered'],25);
   assert.equal(stats.body.counters['task.revision_requested'],5);
   assert.equal(stats.body.counters['task.completed'],20);
 
@@ -82,9 +83,11 @@ test('20 synthetic agents complete 20 isolated marketplace lifecycles',async()=>
   assert.equal(kpis.body.endpointVerifiedAgents,20);
   assert.equal(kpis.body.providerSelections,20);
   assert.equal(kpis.body.acceptedTasks,20);
+  assert.equal(kpis.body.deliveredTasks,25);
   assert.equal(kpis.body.completedTasks,20);
   assert.equal(kpis.body.conversion.selectionToAccept,1);
-  assert.equal(kpis.body.conversion.deliverToComplete,1);
+  assert.equal(kpis.body.conversion.acceptToDeliver,1.25);
+  assert.equal(kpis.body.conversion.deliverToComplete,0.8);
   const source=kpis.body.acquisitionSources.find(row=>row.source==='synthetic-demo-20');
   assert.ok(source);
   assert.equal(source.taskCreations,20);
