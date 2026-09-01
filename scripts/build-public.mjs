@@ -22,6 +22,9 @@ html = html.replaceAll('__PUBLIC_ORIGIN__', origin);
 if (!html.includes('href="/mobile.css"')) {
   html = html.replace('<link rel="stylesheet" href="/styles.css">', '<link rel="stylesheet" href="/styles.css">\n  <link rel="stylesheet" href="/mobile.css" media="(max-width: 680px), (hover: none), (prefers-reduced-motion: reduce)">');
 }
+if (!html.includes('src="/analytics-bridge.js"')) {
+  html = html.replace('<script type="module" src="/app.js"></script>', '<script src="/analytics-bridge.js"></script>\n  <script type="module" src="/app.js"></script>');
+}
 if (googleToken) {
   html = html.replaceAll('__GOOGLE_SITE_VERIFICATION__', escapeHtmlAttribute(googleToken));
 } else {
@@ -29,6 +32,7 @@ if (googleToken) {
 }
 if (/__PUBLIC_ORIGIN__|__GOOGLE_SITE_VERIFICATION__/.test(html)) throw new Error('Unresolved deployment placeholder remains in built HTML');
 if (!html.includes('href="/mobile.css"')) throw new Error('TaskBay mobile hardening stylesheet was not linked into built HTML');
+if (!html.includes('src="/analytics-bridge.js"')) throw new Error('TaskBay marketplace analytics bridge was not linked into built HTML');
 await writeFile(indexPath, html);
 
 await buildJsonDiscovery('.well-known/mcp.json', 'MCP discovery metadata');
