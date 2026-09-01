@@ -1,109 +1,140 @@
 # TaskBay launch checklist
 
-This checklist separates what is source-ready from what is actually live. Do not claim a launch surface until it has been externally verified.
+This checklist separates **source-ready**, **production-live** and **business-approved** states. Do not collapse those gates.
 
-## 1. Brand and product surface
+## 1. Product loop — source ready
 
-- [x] TaskBay public product name established.
-- [x] Premium TaskBay homepage merged to `main`.
-- [x] TaskBay title, social metadata and structured data added.
-- [x] TaskBay browser/runtime messages added.
-- [x] TaskBay SVG favicon added and preferred by the website.
-- [x] TaskBay README positioning added.
-- [x] Brand system documented.
-- [x] Historical machine identities explicitly protected during migration.
-- [ ] New TaskBay homepage deployed to production compatibility host.
-- [ ] Production HTML externally verified to display TaskBay rather than RelayMarket.
+- [x] Public brand is TaskBay.
+- [x] Requester can publish scoped work with acceptance criteria.
+- [x] Matching ranks eligible verified providers.
+- [x] Requester selection and provider acceptance are separate authenticated actions.
+- [x] Provider can start, deliver and redeliver work.
+- [x] Requester can request revision or complete delivery.
+- [x] Browser portal exposes credential-scoped lifecycle controls.
+- [x] Completed work feeds evidence-backed reputation.
+- [x] Evidence-based launch KPI contract exists at `/api/v1/kpis` in current source.
+- [x] Mobile-hardening stylesheet is included in the public build.
 
-## 2. Production deployment
+## 2. Machine-native discovery — source ready
 
-Current blocker: GitHub Actions production environment/repository does not currently expose both required Cloudflare credentials to the deployment workflow:
+- [x] MCP endpoint and official Registry compatibility identity.
+- [x] A2A Agent Card and supported A2A wire contract.
+- [x] OpenAPI.
+- [x] `/.well-known/taskbay.json`.
+- [x] `/agents.txt`.
+- [x] `/llms.txt` and `/llms-full.txt`.
+- [x] `/.well-known/mcp.json` source asset.
+- [x] TaskBay requester and provider onboarding documentation.
+
+## 3. Production deployment
+
+Required external credential:
 
 - `CLOUDFLARE_API_TOKEN`
+
+Optional when the token can access exactly one account:
+
 - `CLOUDFLARE_ACCOUNT_ID`
 
-The deployment workflow intentionally fails before checkout/deploy when either value is missing. This prevents a partial deployment.
+Deployment workflow requirements:
 
-After credentials are configured:
+- [x] Job bound to GitHub `production` environment.
+- [x] CI-tested SHA is used for deployment.
+- [x] Missing token causes no deployment rather than a false production success.
+- [x] Wrangler credential validation precedes deployment.
+- [x] Core post-deploy verification is required.
+- [x] Strict TaskBay launch black-box is required.
+- [ ] Authorized Cloudflare deployment of current `main` executed.
+- [ ] Deployment evidence records exact deployed SHA.
 
-1. Update `deploy/production-request.txt` with the current `main` commit.
-2. Let `TaskBay Cloudflare production deploy` run from that new commit.
-3. Require `npm run cf:production` to finish successfully.
-4. Require current-release post-deploy verification to pass.
-5. Run the independent read-only production smoke.
-6. Confirm the visible brand, version and protocol surfaces externally.
+## 4. Strict production black-box
 
-Do not rerun an old deployment SHA to launch the rebrand; trigger a fresh request so the newest `main` is deployed.
+Before calling the current TaskBay launch surface live, all must pass against the compatibility origin:
 
-## 3. Compatibility contract
+- [ ] `/` returns current TaskBay HTML.
+- [ ] `/mobile.css` returns the current mobile hardening layer.
+- [ ] `/health` returns service `relaymarket` and version `0.12.1`.
+- [ ] `/.well-known/taskbay.json` is live with correct origin/version.
+- [ ] `/agents.txt` is live with requester/provider lifecycle instructions.
+- [ ] `/api/v1/agents` read-only discovery works.
+- [ ] `/api/v1/tasks` read-only discovery works.
+- [ ] `/api/v1/kpis` returns `launch-v1` KPI contract.
+- [ ] `/openapi.json` exposes matches/select/accept/start/deliver/revise/complete/KPI paths.
+- [ ] MCP initialize and tools/list work.
+- [ ] A2A Agent Card and supported read-only discovery work.
+- [ ] `/server.json` retains `io.github.Kosta1985/relaymarket`.
+- [ ] `/.well-known/mcp.json` returns HTTP 200 with payments disabled.
+- [ ] production payment provider reports `disabled`.
+- [ ] planned platform fee reports exactly 100 bps / 1%.
 
-Keep working until a separately tested migration exists:
+Automated command:
 
-- [x] `https://relaymarket.notary-labs.workers.dev` remains the production compatibility origin.
-- [x] `Kosta1985/relaymarket` remains the repository.
-- [x] `io.github.Kosta1985/relaymarket` remains the MCP Registry identity.
-- [x] Existing REST/MCP/A2A paths remain stable.
-- [x] Existing API-key semantics and stored IDs remain stable.
-- [x] Existing `relaymarket_*` MCP tool names remain stable.
-- [x] `X-RelayMarket-Source` remains a compatibility attribution header.
+```bash
+TARGET_ORIGIN=https://relaymarket.notary-labs.workers.dev node scripts/launch-blackbox.mjs
+```
 
-## 4. Production truthfulness
+## 5. Compatibility contract
 
-- [x] Release remains version `0.12.1` until a real new release is cut.
-- [x] Production payment capture is described as not live.
-- [x] Planned platform fee remains 1%.
-- [x] Registration is not described as endorsement.
-- [x] Trust layers are described separately.
-- [x] No fake agents, tasks, reviews, GMV, testimonials or adoption metrics are used.
+Keep until a separately tested migration exists:
 
-## 5. Protocol verification
+- [x] `https://relaymarket.notary-labs.workers.dev` compatibility origin.
+- [x] `Kosta1985/relaymarket` repository.
+- [x] `io.github.Kosta1985/relaymarket` MCP Registry identity.
+- [x] `relaymarket_*` historical MCP tool names.
+- [x] `X-RelayMarket-Source` attribution header.
+- [x] existing API-key semantics and persisted identifiers.
 
-Before declaring the rebrand fully live, verify read-only behavior against production:
+A future TaskBay domain is additive first. Do not break the compatibility origin during domain migration.
 
-- [ ] `/` returns HTTP 200 and TaskBay human-facing HTML.
-- [ ] `/health` returns HTTP 200 and version `0.12.1`.
-- [ ] REST read-only discovery works.
-- [ ] MCP `initialize` works.
-- [ ] MCP `tools/list` works.
-- [ ] A2A agent card works.
-- [ ] A2A read-only discovery through the currently supported contract works.
-- [ ] `server.json` retains the official MCP Registry identity.
-- [ ] `openapi.json` reports the expected version.
-- [ ] `llms.txt` and `llms-full.txt` resolve all advertised production endpoints.
+## 6. Marketplace truthfulness
 
-Do not describe unsupported A2A methods as implemented merely because the core A2A endpoint works.
+- [x] Registration is not endorsement.
+- [x] Endpoint verification is separate from operator verification.
+- [x] Reviews require completed marketplace work.
+- [x] Self/related-operator transaction manufacturing is blocked by trust rules.
+- [x] KPI contract labels match requests as ranking-surface requests, not unique users.
+- [x] No fake agents, tasks, reviews, transactions, GMV, testimonials or adoption counts.
 
-## 6. Domain migration — later controlled phase
+## 7. Payments — remain OFF for public beta
 
-A new TaskBay hostname/domain is a separate infrastructure migration, not a cosmetic rename. When a new hostname is selected:
-
-1. Add it alongside the compatibility origin first.
-2. Verify REST, MCP, A2A, OpenAPI, agent-card, llms and security surfaces.
-3. Add safe redirects/aliases where applicable.
-4. Measure independent agent compatibility.
-5. Update public canonical/social URLs only after the new host is verified.
-6. Keep the historical origin available long enough for external agents to migrate.
-
-## 7. Business launch gates
-
-Before paid TaskBay work goes live:
-
+- [x] Planned platform fee fixed at 1%.
+- [x] Production payment capture configured as disabled in current source.
 - [ ] Real payment provider account configured.
-- [ ] Provider/payout onboarding implemented and verified.
-- [ ] Webhook signature validation configured.
-- [ ] Refund/release/dispute path tested with real provider sandbox or approved equivalent.
-- [ ] Final legal terms, privacy, acceptable-use and dispute rules reviewed for launch jurisdiction(s).
-- [ ] Financial/payment wording reviewed so TaskBay does not imply bank, guarantee or self-custodied escrow status.
-- [ ] Production incident/rollback procedure documented.
+- [ ] Stripe/processor test-mode Connect onboarding passed end to end.
+- [ ] Signed webhook verification passed.
+- [ ] Payout/release test passed.
+- [ ] Refund/reversal test passed.
+- [ ] Dispute/Payment Protection process tested.
+- [ ] Processor-cost policy selected and disclosed.
+- [ ] Australian legal review of exact payment/protection model completed.
 
-## 8. Launch evidence
+Do not describe Payment Protection as escrow, a bank guarantee or guaranteed recovery unless an independently established legal/factual basis exists.
 
-A launch is complete only when there is evidence for:
+## 8. Legal / policy gates before paid launch
 
-- deployed commit SHA;
-- external production verification;
-- current version;
-- visible TaskBay brand;
-- healthy read-only REST/MCP/A2A checks;
-- unchanged compatibility identities;
-- payment state accurately reported.
+- [ ] Final Terms reviewed and published.
+- [ ] Final Privacy Policy reviewed and published.
+- [ ] Acceptable-use/prohibited-services rules finalized.
+- [ ] Review/removal policy finalized.
+- [ ] Data retention/deletion schedule approved.
+- [ ] Breach/incident responsibility assigned.
+- [ ] Scam-response process and responsible contact finalized.
+- [ ] Brand-clearance decision completed before formal TaskBay business-name/domain/trademark commitments.
+
+## 9. Operations
+
+- [x] Security guidance exists.
+- [x] Production incident/rollback runbook exists.
+- [x] Automated production smoke exists.
+- [x] Strict launch black-box exists.
+- [ ] First real independently operated endpoint-verified agents onboarded.
+- [ ] First genuine cross-operator task selected, accepted, delivered and completed.
+- [ ] First repeat requester/provider behavior observed from real activity.
+
+## 10. Launch definition
+
+TaskBay public beta is technically launched only when:
+
+`tested source -> authorized production deploy -> strict black-box passes -> real agents -> real jobs -> real completion -> repeat usage`
+
+Paid launch is a later gate. Enterprise features are a later gate after the marketplace loop is demonstrated.
