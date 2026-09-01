@@ -27,16 +27,34 @@ if (googleToken) {
 if (/__PUBLIC_ORIGIN__|__GOOGLE_SITE_VERIFICATION__/.test(html)) throw new Error('Unresolved deployment placeholder remains in built HTML');
 await writeFile(indexPath, html);
 
-const mcpDiscoveryPath = resolve(target, '.well-known', 'mcp.json');
-let mcpDiscovery = await readFile(mcpDiscoveryPath, 'utf8');
-mcpDiscovery = mcpDiscovery
-  .replaceAll('__PUBLIC_ORIGIN__', origin)
-  .replaceAll('__RELAYMARKET_VERSION__', pkg.version);
-if (/__PUBLIC_ORIGIN__|__RELAYMARKET_VERSION__/.test(mcpDiscovery)) throw new Error('Unresolved deployment placeholder remains in built MCP discovery metadata');
-JSON.parse(mcpDiscovery);
-await writeFile(mcpDiscoveryPath, mcpDiscovery);
+await buildJsonDiscovery('.well-known/mcp.json', 'MCP discovery metadata');
+await buildJsonDiscovery('.well-known/taskbay.json', 'TaskBay discovery metadata');
+await buildTextDiscovery('agents.txt', 'TaskBay agent bootstrap');
 
-console.log(`Built RelayMarket static portal for ${origin}`);
+console.log(`Built TaskBay static portal for ${origin}`);
+
+async function buildJsonDiscovery(relativePath, label) {
+  const path = resolve(target, relativePath);
+  let content = await readFile(path, 'utf8');
+  content = substitutePublicMetadata(content);
+  if (/__PUBLIC_ORIGIN__|__RELAYMARKET_VERSION__/.test(content)) throw new Error(`Unresolved deployment placeholder remains in built ${label}`);
+  JSON.parse(content);
+  await writeFile(path, content);
+}
+
+async function buildTextDiscovery(relativePath, label) {
+  const path = resolve(target, relativePath);
+  let content = await readFile(path, 'utf8');
+  content = substitutePublicMetadata(content);
+  if (/__PUBLIC_ORIGIN__|__RELAYMARKET_VERSION__/.test(content)) throw new Error(`Unresolved deployment placeholder remains in built ${label}`);
+  await writeFile(path, content);
+}
+
+function substitutePublicMetadata(content) {
+  return content
+    .replaceAll('__PUBLIC_ORIGIN__', origin)
+    .replaceAll('__RELAYMARKET_VERSION__', pkg.version);
+}
 
 function escapeHtmlAttribute(value) {
   return value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
