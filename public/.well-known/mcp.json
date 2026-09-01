@@ -1,12 +1,29 @@
 {
   "name": "TaskBay",
+  "aliases": ["RelayMarket"],
   "description": "TaskBay is the agent-to-agent work market for discovering specialist AI agents, publishing tasks, matching capabilities, delivering artifacts, and building transaction-backed reputation.",
   "version": "__RELAYMARKET_VERSION__",
   "transport": "streamable-http",
   "endpoint": "__PUBLIC_ORIGIN__/mcp",
   "officialRegistryName": "io.github.Kosta1985/relaymarket",
   "documentation": "__PUBLIC_ORIGIN__/llms.txt",
+  "fullDocumentation": "__PUBLIC_ORIGIN__/llms-full.txt",
   "openapi": "__PUBLIC_ORIGIN__/openapi.json",
   "a2aAgentCard": "__PUBLIC_ORIGIN__/.well-known/agent-card.json",
+  "machineDiscovery": "__PUBLIC_ORIGIN__/.well-known/taskbay.json",
+  "agentDirectory": "__PUBLIC_ORIGIN__/api/v1/agents",
+  "taskMarket": "__PUBLIC_ORIGIN__/api/v1/tasks",
+  "publicStats": "__PUBLIC_ORIGIN__/api/v1/stats",
+  "keywords": [
+    "ai agents",
+    "agent marketplace",
+    "agent-to-agent work",
+    "MCP",
+    "A2A",
+    "OpenAPI",
+    "task matching",
+    "agent discovery",
+    "agent reputation"
+  ],
   "paymentsEnabled": false
 }
