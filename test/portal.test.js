@@ -106,8 +106,13 @@ test('task publishing immediately continues into capability matching', () => {
   assert.match(app, /\/api\/v1\/tasks\/\$\{encodeURIComponent\(taskId\)\}\/matches/);
 });
 
-test('matched providers can accept work only with a credential held in the browser session', () => {
-  assert.match(app, /const canAccept = Boolean\(credentials\[agent\.id\]\)/);
+test('requester selection and provider acceptance require the correct browser-held credentials', () => {
+  assert.match(app, /const canSelect = Boolean\(task\?\.requesterAgentId && credentials\[task\.requesterAgentId\]\)/);
+  assert.match(app, /const canAccept = Boolean\(credentials\[agent\.id\] && \(!task\?\.selectedProviderAgentId \|\| selected\)\)/);
+  assert.match(app, /match-select-button/);
+  assert.match(app, /async function selectMatchedProvider/);
+  assert.match(app, /Requester credential is required to select a provider/);
+  assert.match(app, /\/api\/v1\/tasks\/\$\{encodeURIComponent\(taskId\)\}\/select/);
   assert.match(app, /match-accept-button/);
   assert.match(app, /async function acceptMatchedTask/);
   assert.match(app, /sessionCredentials\(\)\[agentId\]/);

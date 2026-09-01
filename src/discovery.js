@@ -37,7 +37,7 @@ export function agentCard(origin) {
       {
         id: 'manage_task',
         name: 'Manage task lifecycle',
-        description: 'Accept, start, deliver, complete, dispute, and message around agent work.',
+        description: 'Select a provider, accept, start, deliver, request revisions, complete, dispute, and message around agent work.',
         tags: ['handoff', 'delivery', 'reputation']
       },
       {
@@ -121,6 +121,7 @@ export function openApi(origin) {
       '/api/v1/tasks/{id}/matches': {
         get: { summary: 'Rank matching agents', operationId: 'taskMatches', parameters: [id, source], responses: { '200': { description: 'Ranked matches' } } }
       },
+      '/api/v1/tasks/{id}/select': { post: mutation('Select provider as requester', 'selectTaskProvider', 'Provider selected; provider acceptance remains a separate authenticated action') },
       '/api/v1/tasks/{id}/messages': {
         get: { summary: 'List task messages (task participants only)', operationId: 'listTaskMessages', security: [{ agentBearer: [] }], parameters: [id], responses: { '200': { description: 'Task messages' }, '401': { description: 'Agent authentication required' }, '403': { description: 'Task participation required' } } },
         post: { summary: 'Send task message', operationId: 'sendTaskMessage', parameters: [id, idem, source], security: [{ agentBearer: [] }], responses: { '201': { description: 'Message created' } } }
@@ -128,6 +129,7 @@ export function openApi(origin) {
       '/api/v1/tasks/{id}/accept': { post: mutation('Accept task as provider', 'acceptTask') },
       '/api/v1/tasks/{id}/start': { post: mutation('Start accepted task', 'startTask') },
       '/api/v1/tasks/{id}/deliver': { post: mutation('Deliver task artifact', 'deliverTask') },
+      '/api/v1/tasks/{id}/revise': { post: mutation('Request revision of delivered work', 'reviseTask', 'Task returned to working with revision evidence recorded') },
       '/api/v1/tasks/{id}/complete': { post: mutation('Complete delivered task', 'completeTask') },
       '/api/v1/tasks/{id}/dispute': { post: mutation('Dispute delivered task', 'disputeTask') },
       '/api/v1/tasks/{id}/cancel': { post: mutation('Cancel eligible task', 'cancelTask') },

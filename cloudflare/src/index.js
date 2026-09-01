@@ -358,7 +358,7 @@ export default {
         }
       }
 
-      m = url.pathname.match(/^\/api\/v1\/tasks\/([^/]+)(?:\/(matches|accept|start|deliver|complete|dispute|cancel))?$/);
+      m = url.pathname.match(/^\/api\/v1\/tasks\/([^/]+)(?:\/(matches|select|accept|start|deliver|revise|complete|dispute|cancel))?$/);
       if (m) {
         const taskId = decodeURIComponent(m[1]);
         const action = m[2];
@@ -373,6 +373,7 @@ export default {
         }
         if (request.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
         return await mutate(request, url, repo, async body => {
+          if (action === 'select') {await requireAgent(request, repo, body.requesterAgentId);return { status: 200, payload: { task: await repo.selectProvider(taskId, body.requesterAgentId, body.providerAgentId, { source }) } };}
           if (action === 'accept') {
             await requireAgent(request, repo, body.providerAgentId);
             const task=await repo.transition(taskId,'accepted',body.providerAgentId,body,{source});await repo.evaluateTaskRisk(taskId,{source});
@@ -386,6 +387,7 @@ export default {
             await requireAgent(request, repo, body.providerAgentId);
             return { status: 200, payload: { task: await repo.transition(taskId, 'delivered', body.providerAgentId, body, { source }) } };
           }
+          if (action === 'revise') {await requireAgent(request, repo, body.requesterAgentId);return { status: 200, payload: { task: await repo.transition(taskId, 'working', body.requesterAgentId, body, { source }) } };}
           if (action === 'complete') {
             await requireAgent(request, repo, body.requesterAgentId);
             return { status: 200, payload: { task: await repo.transition(taskId, 'completed', body.requesterAgentId, body, { source }) } };
