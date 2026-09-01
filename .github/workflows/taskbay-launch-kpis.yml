@@ -5,7 +5,7 @@ on:
     branches:
       - taskbay-launch-kpis
     paths:
-      - scripts/apply-taskbay-launch-kpis.mjs
+      - scripts/apply-taskbay-launch-kpis-v2.mjs
       - .github/workflows/taskbay-launch-kpis.yml
 
 permissions:
@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: 22
       - name: Apply KPI contract
-        run: node scripts/apply-taskbay-launch-kpis.mjs
+        run: node scripts/apply-taskbay-launch-kpis-v2.mjs
       - name: Test
         run: npm test
       - name: Smoke
