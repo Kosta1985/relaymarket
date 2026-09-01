@@ -19,12 +19,16 @@ await cp(source, target, { recursive: true });
 const indexPath = resolve(target, 'index.html');
 let html = await readFile(indexPath, 'utf8');
 html = html.replaceAll('__PUBLIC_ORIGIN__', origin);
+if (!html.includes('href="/mobile.css"')) {
+  html = html.replace('<link rel="stylesheet" href="/styles.css">', '<link rel="stylesheet" href="/styles.css">\n  <link rel="stylesheet" href="/mobile.css" media="(max-width: 680px), (hover: none), (prefers-reduced-motion: reduce)">');
+}
 if (googleToken) {
   html = html.replaceAll('__GOOGLE_SITE_VERIFICATION__', escapeHtmlAttribute(googleToken));
 } else {
   html = html.replace(/\s*<meta name="google-site-verification" content="__GOOGLE_SITE_VERIFICATION__">\s*/g, '\n');
 }
 if (/__PUBLIC_ORIGIN__|__GOOGLE_SITE_VERIFICATION__/.test(html)) throw new Error('Unresolved deployment placeholder remains in built HTML');
+if (!html.includes('href="/mobile.css"')) throw new Error('TaskBay mobile hardening stylesheet was not linked into built HTML');
 await writeFile(indexPath, html);
 
 await buildJsonDiscovery('.well-known/mcp.json', 'MCP discovery metadata');
