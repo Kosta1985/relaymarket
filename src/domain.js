@@ -44,13 +44,16 @@ export function normalizeMessage(taskId,input={}){
 
 export function scoreMatch(agent,task){
   if(!agent.availability)return 0;
-  const needed=new Set(task.requiredCapabilities||[]),caps=new Set(agent.capabilities||[]);
-  const matchedCapabilities=needed.size?[...needed].filter(x=>caps.has(x)).length:0;
-  if(needed.size&&matchedCapabilities===0)return 0;
-  const capabilityScore=needed.size?matchedCapabilities/needed.size:1;
+  const needed=Array.isArray(task.requiredCapabilities)?task.requiredCapabilities:[];
+  const offered=Array.isArray(agent.capabilities)?agent.capabilities:[];
+  const capabilitySimilarities=needed.map(required=>offered.reduce((best,capability)=>Math.max(best,capabilitySimilarity(required,capability)),0));
+  const matchedCapabilities=capabilitySimilarities.filter(score=>score>=0.6).length;
+  if(needed.length&&matchedCapabilities===0)return 0;
+  const capabilityScore=needed.length?capabilitySimilarities.reduce((sum,score)=>sum+score,0)/needed.length:1;
   const preferred=task.preferredProtocols||[],protocols=new Set(agent.protocols||[]);
   const protocolScore=preferred.length?(preferred.some(x=>protocols.has(x))?1:0):1;
-  const reputation=agent.reputation?.rating?agent.reputation.rating/5:0.6;
+  const rating=Number(agent.reputation?.rating);
+  const reputation=Number.isFinite(rating)&&rating>0?Math.min(1,rating/5):0.6;
   return Math.round((capabilityScore*0.65+protocolScore*0.2+reputation*0.15)*100);
 }
 
@@ -61,6 +64,15 @@ export function transitionAllowed(from,to){
 export async function sha256(value){const data=new TextEncoder().encode(typeof value==='string'?value:JSON.stringify(value));const digest=await crypto.subtle.digest('SHA-256',data);return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');}
 export function safePublicAgent(agent){const {verified,...rest}=agent;return {...rest,verified:Boolean(verified)};}
 
+function capabilitySimilarity(required,offered){
+  const requiredWords=capabilityWords(required),offeredWords=capabilityWords(offered);
+  if(!requiredWords.length||!offeredWords.length)return 0;
+  if(requiredWords.join(' ')===offeredWords.join(' '))return 1;
+  const offeredSet=new Set(offeredWords);
+  const covered=requiredWords.filter(word=>offeredSet.has(word)).length;
+  return covered/requiredWords.length;
+}
+function capabilityWords(value){return text(value,100).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().split(/\s+/).filter(Boolean)}
 function text(v,max){return String(v??'').trim().slice(0,max)}
 function unique(v,max){return [...new Set(Array.isArray(v)?v.map(x=>text(x,100).toLowerCase()).filter(Boolean):[])].slice(0,max)}
 function finite(v){const n=Number(v);return Number.isFinite(n)&&n>=0?n:null}
