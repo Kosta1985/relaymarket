@@ -7,17 +7,33 @@ const mcp = JSON.parse(await readFile(new URL('../public/.well-known/mcp.json', 
 const agentsTxt = await readFile(new URL('../public/agents.txt', import.meta.url), 'utf8');
 
 const compatibilityOrigin = 'https://relaymarket.notary-labs.workers.dev';
+const publicOrigin = '__PUBLIC_ORIGIN__';
 
-test('TaskBay exposes one machine-readable discovery manifest for autonomous agents', () => {
+test('TaskBay exposes one portable machine-readable discovery manifest for autonomous agents', () => {
   assert.equal(discovery.name, 'TaskBay');
+  assert.equal(discovery.schemaVersion, '1.1');
+  assert.equal(discovery.version, '__RELAYMARKET_VERSION__');
   assert.ok(discovery.aliases.includes('RelayMarket'));
+  assert.equal(discovery.serviceOrigin, publicOrigin);
   assert.equal(discovery.compatibilityOrigin, compatibilityOrigin);
   assert.equal(discovery.registryIdentity, 'io.github.Kosta1985/relaymarket');
-  assert.equal(discovery.protocols.mcp.endpoint, `${compatibilityOrigin}/mcp`);
-  assert.equal(discovery.protocols.a2a.agentCard, `${compatibilityOrigin}/.well-known/agent-card.json`);
-  assert.equal(discovery.protocols.openapi.document, `${compatibilityOrigin}/openapi.json`);
-  assert.equal(discovery.entrypoints.agentDirectory, `${compatibilityOrigin}/api/v1/agents`);
-  assert.equal(discovery.entrypoints.taskMarket, `${compatibilityOrigin}/api/v1/tasks`);
+  assert.equal(discovery.protocols.mcp.endpoint, `${publicOrigin}/mcp`);
+  assert.equal(discovery.protocols.a2a.agentCard, `${publicOrigin}/.well-known/agent-card.json`);
+  assert.equal(discovery.protocols.openapi.document, `${publicOrigin}/openapi.json`);
+  assert.equal(discovery.entrypoints.agentDirectory, `${publicOrigin}/api/v1/agents`);
+  assert.equal(discovery.entrypoints.taskMarket, `${publicOrigin}/api/v1/tasks`);
+  assert.equal(discovery.entrypoints.agentBootstrap, `${publicOrigin}/agents.txt`);
+});
+
+test('machine discovery gives autonomous clients actionable search templates', () => {
+  assert.match(discovery.queryTemplates.findAgentsByCapability, /capability=\{capability\}/);
+  assert.match(discovery.queryTemplates.findAgentsByProtocol, /protocol=\{protocol\}/);
+  assert.match(discovery.queryTemplates.findAgentsByCapabilityAndProtocol, /available=true/);
+  assert.match(discovery.queryTemplates.rankAgentsForTask, /\{taskId\}\/matches$/);
+  assert.match(discovery.queryTemplates.inspectAgentTrust, /\{agentId\}\/trust$/);
+  assert.ok(discovery.agentOnboarding.minimumUsefulProfile.includes('capabilities'));
+  assert.match(discovery.capabilityGuidance.format, /hyphens.*underscores/i);
+  assert.match(discovery.requestGuidance.retrySafety, /Idempotency-Key/);
 });
 
 test('machine discovery advertises the actual work lifecycle rather than a profile-only directory', () => {
@@ -53,8 +69,10 @@ test('MCP well-known metadata points agents toward the broader TaskBay discovery
 
 test('plain-text agent bootstrap is useful to minimal clients and search systems', () => {
   assert.match(agentsTxt, /TaskBay is an agent-to-agent work market/i);
-  assert.match(agentsTxt, /\.well-known\/taskbay\.json/);
-  assert.match(agentsTxt, /POST https:\/\/relaymarket\.notary-labs\.workers\.dev\/api\/v1\/agents/);
+  assert.match(agentsTxt, /GET __PUBLIC_ORIGIN__\/\.well-known\/taskbay\.json/);
+  assert.match(agentsTxt, /POST __PUBLIC_ORIGIN__\/api\/v1\/agents/);
+  assert.match(agentsTxt, /capability=api-review&available=true/);
+  assert.match(agentsTxt, /api-review, api_review, and api review/i);
   assert.match(agentsTxt, /Idempotency-Key/);
   assert.match(agentsTxt, /X-RelayMarket-Source/);
   assert.match(agentsTxt, /Production payment capture is currently disabled/i);
