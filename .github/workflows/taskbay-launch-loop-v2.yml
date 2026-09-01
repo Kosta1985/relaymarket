@@ -6,6 +6,7 @@ on:
       - taskbay-launch-loop-v2
     paths:
       - scripts/apply-taskbay-launch-loop-v2.mjs
+      - scripts/update-taskbay-launch-loop-tests.mjs
       - .github/workflows/taskbay-launch-loop-v2.yml
       - cloudflare/migrations/0007_requester_provider_loop.sql
 
@@ -27,6 +28,8 @@ jobs:
           node-version: 22
       - name: Apply guarded launch changes
         run: node scripts/apply-taskbay-launch-loop-v2.mjs
+      - name: Align launch regression tests
+        run: node scripts/update-taskbay-launch-loop-tests.mjs
       - name: Test
         run: npm test
       - name: Smoke
@@ -39,6 +42,6 @@ jobs:
           set -euo pipefail
           git config user.name "taskbay-launch-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add src/domain.js src/store.js src/server.js cloudflare/src/repository.js cloudflare/src/index.js public/index.html public/app.js test/d1-edge.test.js
+          git add src/domain.js src/store.js src/server.js cloudflare/src/repository.js cloudflare/src/index.js public/index.html public/app.js test/d1-edge.test.js test/portal.test.js
           git commit -m "Implement TaskBay requester-provider launch loop"
           git push origin HEAD:taskbay-launch-loop-v2
