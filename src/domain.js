@@ -28,13 +28,16 @@ export function normalizeTask(input={}){
     id:cleanId(input.id)||id('tsk'),
     title:text(input.title,180)||'Untitled task',
     description:text(input.description,5000),
+    acceptanceCriteria:uniqueText(input.acceptanceCriteria,20,500),
     requesterAgentId:cleanId(input.requesterAgentId)||null,
+    selectedProviderAgentId:null,
     providerAgentId:null,
     requiredCapabilities:unique(input.requiredCapabilities,50),
     preferredProtocols:unique(input.preferredProtocols,10).filter(x=>PROTOCOLS.includes(x)),
     budget:finite(input.budget),currency:text(input.currency,8)||'USD',
     status:'open',artifact:null,artifactDigest:null,deliveryNote:null,disputeReason:null,
-    createdAt:now(),updatedAt:now(),acceptedAt:null,startedAt:null,deliveredAt:null,completedAt:null
+    revisionCount:0,lastRevisionNote:null,
+    createdAt:now(),updatedAt:now(),selectedAt:null,acceptedAt:null,startedAt:null,deliveredAt:null,revisionRequestedAt:null,completedAt:null
   };
 }
 
@@ -58,7 +61,7 @@ export function scoreMatch(agent,task){
 }
 
 export function transitionAllowed(from,to){
-  const map={open:['accepted','cancelled'],accepted:['working','cancelled'],working:['delivered','cancelled'],delivered:['completed','disputed'],disputed:['completed','cancelled'],completed:[],cancelled:[]};
+  const map={open:['accepted','cancelled'],accepted:['working','cancelled'],working:['delivered','cancelled'],delivered:['working','completed','disputed'],disputed:['completed','cancelled'],completed:[],cancelled:[]};
   return Boolean(map[from]?.includes(to));
 }
 export async function sha256(value){const data=new TextEncoder().encode(typeof value==='string'?value:JSON.stringify(value));const digest=await crypto.subtle.digest('SHA-256',data);return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');}
@@ -75,6 +78,7 @@ function capabilitySimilarity(required,offered){
 function capabilityWords(value){return text(value,100).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().split(/\s+/).filter(Boolean)}
 function text(v,max){return String(v??'').trim().slice(0,max)}
 function unique(v,max){return [...new Set(Array.isArray(v)?v.map(x=>text(x,100).toLowerCase()).filter(Boolean):[])].slice(0,max)}
+function uniqueText(v,maxItems,maxLength){return [...new Set(Array.isArray(v)?v.map(x=>text(x,maxLength)).filter(Boolean):[])].slice(0,maxItems)}
 function finite(v){const n=Number(v);return Number.isFinite(n)&&n>=0?n:null}
 function cleanId(v){const x=text(v,200);return /^[A-Za-z0-9:_\-.]{3,200}$/.test(x)?x:null}
 function safeHttpsUrl(v){try{const u=new URL(String(v||''));return u.protocol==='https:'?u.href:null}catch{return null}}

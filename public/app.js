@@ -230,14 +230,17 @@ async function showMatches(taskId) {
     if (list) {
       list.innerHTML = rows.length ? rows.slice(0, 8).map(match => {
         const agent = match.agent || {};
-        const canAccept = Boolean(credentials[agent.id]);
+        const selected = task?.selectedProviderAgentId === agent.id;
+        const canSelect = Boolean(task?.requesterAgentId && credentials[task.requesterAgentId]);
+        const canAccept = Boolean(credentials[agent.id] && (!task?.selectedProviderAgentId || selected));
         return `<div class="match-row">
           <div class="match-score">${esc(match.score)}%<small>match</small></div>
           <div><h4>${esc(agent.name)}</h4><p>${esc((agent.capabilities || []).slice(0, 5).join(' - '))}</p><div class="tags">${(agent.protocols || []).slice(0, 4).map(protocol => `<span class="tag protocol">${esc(protocol)}</span>`).join('')}</div></div>
-          <div><button class="button ghost compact match-profile-button" data-agent-id="${escAttr(agent.id)}" data-task-id="${escAttr(taskId)}" type="button">Profile</button>${canAccept ? `<button class="button primary compact match-accept-button" data-agent-id="${escAttr(agent.id)}" data-task-id="${escAttr(taskId)}" type="button">Accept task</button>` : ''}</div>
+          <div><button class="button ghost compact match-profile-button" data-agent-id="${escAttr(agent.id)}" data-task-id="${escAttr(taskId)}" type="button">Profile</button>${canSelect ? `<button class="button primary compact match-select-button" data-agent-id="${escAttr(agent.id)}" data-task-id="${escAttr(taskId)}" type="button">${selected ? 'Selected' : 'Select agent'}</button>` : ''}${canAccept ? `<button class="button ghost compact match-accept-button" data-agent-id="${escAttr(agent.id)}" data-task-id="${escAttr(taskId)}" type="button">Accept task</button>` : ''}</div>
         </div>`;
       }).join('') : emptyState('No compatible agents yet.', 'Register a specialist agent with the required capabilities.');
       list.querySelectorAll('.match-profile-button').forEach(button => button.addEventListener('click', () => showAgentProfile(button.dataset.agentId, button.dataset.taskId)));
+      list.querySelectorAll('.match-select-button').forEach(button => button.addEventListener('click', () => selectMatchedProvider(button.dataset.taskId, button.dataset.agentId, button)));
       list.querySelectorAll('.match-accept-button').forEach(button => button.addEventListener('click', () => acceptMatchedTask(button.dataset.taskId, button.dataset.agentId, button)));
     }
     openDialog($('#matchesDialog'));
@@ -285,6 +288,13 @@ function prefillTaskForAgent(agent) {
   openDialog(taskDialog);
   form.querySelector('[name="title"]')?.focus();
   showToast(`Task form prepared for ${agent.name}.`);
+}
+
+async function selectMatchedProvider(taskId, agentId, button) {
+  const task=state.tasks.find(row=>row.id===taskId);const requesterAgentId=task?.requesterAgentId;const apiKey=requesterAgentId?sessionCredentials()[requesterAgentId]:null;
+  if(!requesterAgentId||!apiKey)return showToast('Requester credential is required to select a provider.',true);
+  const original=button?.textContent;if(button){button.disabled=true;button.textContent='Selecting...';}
+  try{await mutation(`/api/v1/tasks/${encodeURIComponent(taskId)}/select`,{requesterAgentId,providerAgentId:agentId},{apiKey});showToast('Provider selected. The provider can now accept the task.');await loadAll();await showMatches(taskId);}catch(error){if(button){button.disabled=false;button.textContent=original||'Select agent';}showToast(error.message,true);}
 }
 
 async function acceptMatchedTask(taskId, agentId, button) {
@@ -365,7 +375,7 @@ bind('#taskForm', 'submit', async event => {
   if (requesterAgentId && !apiKey) return showToast('Requester API key is required for this agent.', true);
   try {
     const created = await mutation('/api/v1/tasks', {
-      title: form.get('title'), description: form.get('description'), requesterAgentId,
+      title: form.get('title'), description: form.get('description'), acceptanceCriteria: splitLines(form.get('acceptanceCriteria')), requesterAgentId,
       requiredCapabilities: split(form.get('capabilities')), preferredProtocols: split(form.get('protocols')),
       budget: nullableNumber(form.get('budget')), currency: String(form.get('currency') || 'USD').trim().toUpperCase()
     }, { apiKey });
@@ -525,6 +535,7 @@ function emptyState(title, body) { return `<div class="empty-state"><strong>${es
 function initials(name) { return String(name || 'A').split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0]).join('').toUpperCase(); }
 function shortId(value) { const v = String(value || ''); return v.length > 22 ? `${v.slice(0, 11)}...${v.slice(-6)}` : v; }
 function split(value) { return [...new Set(String(value || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean))]; }
+function splitLines(value) { return [...new Set(String(value || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean))].slice(0,20); }
 function nullableNumber(value) { if (value === '' || value == null) return null; const n = Number(value); return Number.isFinite(n) && n >= 0 ? n : null; }
 function n(value) { const x = Number(value); return Number.isFinite(x) ? x : 0; }
 function setText(selector, value) { const target = $(selector); if (!target) return; target.textContent = Number.isFinite(Number(value)) ? Number(value).toLocaleString() : String(value); }
