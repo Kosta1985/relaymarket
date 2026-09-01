@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { VERSION } from './domain.js';
-import { initStore,listAgents,getAgent,createAgent,updateAgent,listTasks,getTask,createTask,matches,selectProvider,acceptTask,startTask,deliverTask,reviseTask,completeTask,disputeTask,cancelTask,listMessages,createMessage,stats,metrics,recentEvents,recordMetric,getIdempotent,saveIdempotent,issueCredential,authenticateApiKey,listCredentials,revokeCredential,rotateCredential,createVerificationChallenge,getVerificationChallenge,completeVerificationChallenge,listPayments,getPayment,getTaskPayment,createPayment,transitionPayment,paymentStats } from './store.js';
+import { initStore,listAgents,getAgent,createAgent,updateAgent,listTasks,getTask,createTask,matches,selectProvider,acceptTask,startTask,deliverTask,reviseTask,completeTask,disputeTask,cancelTask,listMessages,createMessage,stats,launchKpis,metrics,recentEvents,recordMetric,getIdempotent,saveIdempotent,issueCredential,authenticateApiKey,listCredentials,revokeCredential,rotateCredential,createVerificationChallenge,getVerificationChallenge,completeVerificationChallenge,listPayments,getPayment,getTaskPayment,createPayment,transitionPayment,paymentStats } from './store.js';
 import { agentCard, openApi, handleMcp, handleA2A } from './protocols.js';
 import { robotsTxt, sitemapXml, llmsTxt, llmsFullTxt, securityTxt, mcpServerJson, webManifest } from './discovery.js';
 import { enforceRateLimit,idempotencyKey,requestFingerprint,requestSource,bearerToken,verifyOwnershipUrl } from './security.js';
@@ -29,6 +29,7 @@ const server=http.createServer(async(req,res)=>{try{
   if(req.method==='POST'&&url.pathname==='/mcp'){validateMcpOrigin(req,origin);await recordMetric('protocol.mcp_call',{source,audit:false});return await bridge(res,await handleMcp(toRequest(req,origin,url),{source}));}
   if(req.method==='POST'&&url.pathname==='/a2a'){await recordMetric('protocol.a2a_call',{source,audit:false});return await bridge(res,await handleA2A(toRequest(req,origin,url),{source}));}
   if(req.method==='GET'&&url.pathname==='/api/v1/stats')return send(res,200,stats());
+  if(req.method==='GET'&&url.pathname==='/api/v1/kpis')return send(res,200,launchKpis());
   if(req.method==='GET'&&url.pathname==='/api/v1/metrics')return send(res,200,metrics());
   if(req.method==='GET'&&url.pathname==='/api/v1/events')return send(res,200,{events:publicEvents(recentEvents(Number(url.searchParams.get('limit')||30)))});
   if(req.method==='GET'&&url.pathname==='/api/v1/payments/config')return send(res,200,{provider:process.env.RELAYMARKET_PAYMENT_PROVIDER||'mock',live:false,platformFeeBps:PLATFORM_FEE_BPS,platformFeePercent:PLATFORM_FEE_BPS/100,feeRounding:'floor_minor_unit',processorFeesIncluded:false,releaseModel:'after_task_completion',note:'Mock provider is for development only; production payment capture remains disabled until a real provider is configured.'});

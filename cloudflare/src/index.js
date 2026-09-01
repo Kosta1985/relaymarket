@@ -89,8 +89,9 @@ export default {
         return handleA2A(request, repo, source, env);
       }
 
-      if (request.method === 'GET' && url.pathname === '/api/v1/stats') return json(await repo.stats());
-      if (request.method === 'GET' && url.pathname === '/api/v1/metrics') return json(await repo.metrics());
+      if (url.pathname === '/api/v1/stats' && request.method === 'GET') return json(await repo.stats());
+    if (url.pathname === '/api/v1/kpis' && request.method === 'GET') return json(await repo.launchKpis());
+    if (url.pathname === '/api/v1/metrics' && request.method === 'GET') return json(await repo.metrics());
       if (request.method === 'GET' && url.pathname === '/api/v1/events') return json({ events: publicEvents(await repo.recentEvents(url.searchParams.get('limit'))) });
       if (request.method === 'GET' && url.pathname === '/api/v1/payments/config') { const provider=env.PAYMENT_PROVIDER||'disabled',policy=env.PAYMENT_PROCESSOR_COST_POLICY||'unset'; return json({ provider, live: stripeRuntimeReady(env), platformFeeBps: PLATFORM_FEE_BPS, platformFeePercent: PLATFORM_FEE_BPS / 100, feeRounding: 'floor_minor_unit', processorFeesIncluded: false, releaseModel: 'after_task_completion', processorCostPolicy: policy, readiness: provider==='stripe' ? { secretConfigured:Boolean(env.STRIPE_SECRET_KEY), webhookConfigured:Boolean(env.STRIPE_WEBHOOK_SECRET), processorPolicyConfigured:processorPolicyValid(policy) } : null }); }
       if (request.method === 'GET' && url.pathname === '/api/v1/payments/quote') {
