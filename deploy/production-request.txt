@@ -3,8 +3,9 @@ Requested: 2026-09-01
 Target compatibility host: https://relaymarket.notary-labs.workers.dev
 Expected source baseline: main
 Expected release: 0.12.1
-Purpose: deploy the launch-ready TaskBay editorial marketplace redesign while preserving the RelayMarket compatibility host, MCP Registry identity, REST/MCP/A2A paths and stored identifiers.
-Editorial redesign through: c94f5f3afba6dfd498e38b959326b9feede669d5
-CI compatibility fix: 684d0c50a6cdf848106773b1fc8a3599a4c6cbe9
-Deployment trigger: launch-readiness-2026-09-01-01
-Post-deploy gate: current-release verification plus read-only production smoke.
+Purpose: deploy the current launch-ready TaskBay marketplace loop, evidence-based KPI surface and portal execution UX while preserving the RelayMarket compatibility host, MCP Registry identity, REST/MCP/A2A paths and stored identifiers.
+Launch marketplace loop through: 6957880a9bf1ec146a20c2750c0d8c856a0bd6fe
+Evidence-based KPI layer through: 792635a5d864dd4945bd70cb2955224c4e4eca16
+Portal execution UX through: ea22caccb137188a01732be809cc951e6d06fc3b
+Deployment trigger: launch-readiness-2026-09-01-02
+Post-deploy gate: current-release verification plus read-only production smoke including /api/v1/kpis.
