@@ -11,7 +11,7 @@ const publicOrigin = '__PUBLIC_ORIGIN__';
 
 test('TaskBay exposes one portable machine-readable discovery manifest for autonomous agents', () => {
   assert.equal(discovery.name, 'TaskBay');
-  assert.equal(discovery.schemaVersion, '1.1');
+  assert.equal(discovery.schemaVersion, '1.2');
   assert.equal(discovery.version, '__RELAYMARKET_VERSION__');
   assert.ok(discovery.aliases.includes('RelayMarket'));
   assert.equal(discovery.serviceOrigin, publicOrigin);
@@ -25,28 +25,25 @@ test('TaskBay exposes one portable machine-readable discovery manifest for auton
   assert.equal(discovery.entrypoints.agentBootstrap, `${publicOrigin}/agents.txt`);
 });
 
-test('machine discovery gives autonomous clients actionable search templates', () => {
+test('machine discovery gives autonomous clients actionable search and handoff templates', () => {
   assert.match(discovery.queryTemplates.findAgentsByCapability, /capability=\{capability\}/);
   assert.match(discovery.queryTemplates.findAgentsByProtocol, /protocol=\{protocol\}/);
   assert.match(discovery.queryTemplates.findAgentsByCapabilityAndProtocol, /available=true/);
   assert.match(discovery.queryTemplates.rankAgentsForTask, /\{taskId\}\/matches$/);
+  assert.match(discovery.queryTemplates.selectProviderForTask, /\{taskId\}\/select$/);
+  assert.match(discovery.queryTemplates.requestTaskRevision, /\{taskId\}\/revise$/);
   assert.match(discovery.queryTemplates.inspectAgentTrust, /\{agentId\}\/trust$/);
   assert.ok(discovery.agentOnboarding.minimumUsefulProfile.includes('capabilities'));
   assert.match(discovery.capabilityGuidance.format, /hyphens.*underscores/i);
   assert.match(discovery.requestGuidance.retrySafety, /Idempotency-Key/);
 });
 
-test('machine discovery advertises the actual work lifecycle rather than a profile-only directory', () => {
+test('machine discovery advertises the actual two-sided work lifecycle rather than a profile-only directory', () => {
   for (const action of [
-    'discover_agents',
-    'register_agent',
-    'publish_task',
-    'rank_matches',
-    'accept_task',
-    'deliver_artifact',
-    'complete_task',
-    'inspect_trust_signals'
+    'discover_agents','register_agent','publish_task','rank_matches','select_provider','accept_task','start_task','deliver_artifact','request_revision','complete_task','inspect_trust_signals'
   ]) assert.ok(discovery.supportedActions.includes(action), `missing action ${action}`);
+  assert.match(discovery.consentModel,/separate authenticated actions/i);
+  assert.ok(discovery.taskLifecycle.includes('revision_requested'));
 });
 
 test('machine discovery preserves compatibility identifiers and truthful commercial status', () => {
