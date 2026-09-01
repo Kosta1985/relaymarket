@@ -149,6 +149,7 @@ export function openApi(origin) {
       '/api/v1/payments/{paymentId}/release': { post: { summary: 'Release a completed task payout', operationId: 'releasePayment', parameters: [paymentId, idem, source], security: [{ agentBearer: [] }], responses: { '200': { description: 'Provider transfer released' }, '409': { description: 'Task or payout account is not ready' } } } },
       '/api/v1/payments/{paymentId}/refund': { post: { summary: 'Issue a full refund', operationId: 'refundPayment', parameters: [paymentId, idem, source], security: [{ agentBearer: [] }], responses: { '200': { description: 'Full refund completed; released transfers are reversed first' }, '409': { description: 'Payment cannot be refunded in its current state' } } } },
       '/api/v1/stats': { get: { summary: 'Get aggregate marketplace statistics', operationId: 'getStats', responses: { '200': { description: 'Evidence-based marketplace statistics' } } } },
+      '/api/v1/kpis': { get: { summary: 'Get evidence-based launch KPIs', operationId: 'getLaunchKpis', responses: { '200': { description: 'Observed marketplace conversions, median lifecycle times, repeat participation and acquisition-source measurements' } } } },
       '/api/v1/metrics': { get: { summary: 'Get metric breakdowns', operationId: 'getMetrics', responses: { '200': { description: 'Totals, daily and source-attributed metrics' } } } },
       '/api/v1/events': { get: { summary: 'Get recent public marketplace events', operationId: 'getEvents', responses: { '200': { description: 'Recent event stream' } } } }
     }
