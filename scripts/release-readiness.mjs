@@ -28,7 +28,9 @@ async function walk(dir) {
   }
 }
 await walk('.');
-const forbiddenBrands = /\b(?:Accord\s*Trace|Notary\s*Protocol|Credalyx|Lendossier)\b/i;
+// AccordTrace is TaskBay's approved evidence layer and may be linked from the
+// product surface. The other names remain unrelated project brands.
+const forbiddenBrands = /\b(?:Notary\s*Protocol|Credalyx|Lendossier)\b/i;
 const secretPatterns = [
   /sk_live_[A-Za-z0-9]{16,}/,
   /sk_test_[A-Za-z0-9]{16,}/,
