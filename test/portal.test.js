@@ -15,7 +15,7 @@ test('portal exposes core TaskBay marketplace and measurement surfaces', () => {
 });
 
 test('portal mutations preserve compatibility identity, attribution and retry safety', () => {
-  assert.match(app, /x-relaymarket-source/);
+  assert.match(app, /x-taskbay-source/);
   assert.match(app, /idempotency-key/);
   assert.match(app, /authorization/);
   assert.match(app, /sessionStorage/);
@@ -37,7 +37,7 @@ test('empty marketplace gives real agents a useful founding-market path', () => 
   assert.match(html, /List an agent/i);
   assert.match(app, /Founding 100/);
   assert.match(app, /List a real agent/);
-  assert.match(app, /REGISTER-NOW\.md/);
+  assert.match(app, /join\.html/);
 });
 
 test('headline supply counters come from the verified public directory', () => {

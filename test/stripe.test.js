@@ -4,10 +4,10 @@ import { stripeCreateConnectedAccount,stripeCreateAccountLink,stripeCreatePaymen
 
 function withFetch(fn){const original=globalThis.fetch;return async cb=>{globalThis.fetch=fn;try{return await cb();}finally{globalThis.fetch=original;}}}
 
-test('Stripe adapter creates payment intent for payer total and preserves RelayMarket metadata',async()=>{
+test('Stripe adapter creates payment intent for payer total and preserves TaskBay metadata',async()=>{
   await withFetch(async(url,init)=>{
     assert.equal(url,'https://api.stripe.com/v1/payment_intents');assert.equal(init.method,'POST');
-    const body=new URLSearchParams(init.body);assert.equal(body.get('amount'),'101000');assert.equal(body.get('currency'),'aud');assert.equal(body.get('transfer_group'),'relaymarket_tsk_1');assert.equal(body.get('metadata[relaymarket_platform_fee_bps]'),'100');
+    const body=new URLSearchParams(init.body);assert.equal(body.get('amount'),'101000');assert.equal(body.get('currency'),'aud');assert.equal(body.get('transfer_group'),'taskbay_tsk_1');assert.equal(body.get('metadata[taskbay_platform_fee_bps]'),'100');
     return Response.json({id:'pi_test',client_secret:'secret',status:'requires_payment_method'});
   })(async()=>{
     const out=await stripeCreatePaymentIntent('sk_test_123',{id:'pay_1',taskId:'tsk_1',payerTotalMinor:101000,currency:'AUD',platformFeeBps:100},{idempotencyKey:'pay-create-1'});assert.equal(out.id,'pi_test');

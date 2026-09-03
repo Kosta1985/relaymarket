@@ -25,7 +25,7 @@ async function api(env,path,init={}){const r=await worker.fetch(new Request(`htt
 test('D1 edge registration, idempotency and lifecycle counters remain consistent',async()=>{
   const e=await env();
   const first=await api(e,'/api/v1/agents',{method:'POST',headers:{'idempotency-key':'register-requester-001'},body:JSON.stringify({id:'agt_requester_edge',name:'Requester Edge',capabilities:['planning'],protocols:['mcp']})});
-  assert.equal(first.r.status,201);assert.match(first.body.credential.apiKey,/^rmk_/);
+  assert.equal(first.r.status,201);assert.match(first.body.credential.apiKey,/^tbk_/);
   const replay=await api(e,'/api/v1/agents',{method:'POST',headers:{'idempotency-key':'register-requester-001'},body:JSON.stringify({id:'agt_requester_edge',name:'Requester Edge',capabilities:['planning'],protocols:['mcp']})});
   assert.equal(replay.r.status,201);assert.equal(replay.r.headers.get('x-idempotent-replay'),'true');
   const provider=await api(e,'/api/v1/agents',{method:'POST',body:JSON.stringify({id:'agt_provider_edge',name:'Provider Edge',capabilities:['research'],protocols:['mcp']})});
@@ -50,8 +50,8 @@ test('D1 idempotency rejects key reuse with a different request',async()=>{
 
 test('D1 edge MCP initialize and tools/list are live',async()=>{
   const e=await env();
-  const init=await api(e,'/mcp',{method:'POST',body:JSON.stringify({jsonrpc:'2.0',id:1,method:'initialize',params:{}})});assert.equal(init.r.status,200);assert.equal(init.body.result.serverInfo.name,'relaymarket');
-  const tools=await api(e,'/mcp',{method:'POST',body:JSON.stringify({jsonrpc:'2.0',id:2,method:'tools/list',params:{}})});assert.equal(tools.r.status,200);assert.ok(tools.body.result.tools.some(x=>x.name==='relaymarket_publish_task'));
+  const init=await api(e,'/mcp',{method:'POST',body:JSON.stringify({jsonrpc:'2.0',id:1,method:'initialize',params:{}})});assert.equal(init.r.status,200);assert.equal(init.body.result.serverInfo.name,'taskbay');
+  const tools=await api(e,'/mcp',{method:'POST',body:JSON.stringify({jsonrpc:'2.0',id:2,method:'tools/list',params:{}})});assert.equal(tools.r.status,200);assert.ok(tools.body.result.tools.some(x=>x.name==='taskbay_publish_task'));
 });
 
 test('D1 verification challenge stores only a token hash',async()=>{
@@ -59,7 +59,7 @@ test('D1 verification challenge stores only a token hash',async()=>{
   const a=await api(e,'/api/v1/agents',{method:'POST',body:JSON.stringify({id:'agt_verify_edge',name:'Verify Edge',endpoints:[{protocol:'mcp',url:'https://example.com/mcp'}]})});
   const key=a.body.credential.apiKey;
   const c=await api(e,'/api/v1/agents/agt_verify_edge/verification-challenges',{method:'POST',headers:{authorization:`Bearer ${key}`,'idempotency-key':'verification-create-001'},body:JSON.stringify({endpointIndex:0})});
-  assert.equal(c.r.status,201);assert.match(c.body.challenge.token,/^rm_verify_/);
+  assert.equal(c.r.status,201);assert.match(c.body.challenge.token,/^tb_verify_/);
   const row=e.DB.db.prepare('SELECT token_hash,event_source FROM agent_verification_challenges WHERE id=?').get(c.body.challenge.id);
   assert.match(row.token_hash,/^[a-f0-9]{64}$/);assert.notEqual(row.token_hash,c.body.challenge.token);assert.equal(row.event_source,'edge-test');
   const stats=(await api(e,'/api/v1/stats')).body;assert.equal(stats.counters['agent.verification_challenge_created'],1);
@@ -141,7 +141,7 @@ test('D1 endpoint ownership verification marks only the challenged agent and cou
   const originalFetch=globalThis.fetch;
   globalThis.fetch=async request=>{
     const u=typeof request==='string'?request:(request?.url||String(request));
-    assert.equal(u,'https://agent.example/.well-known/relaymarket-verification.txt');
+    assert.equal(u,'https://agent.example/.well-known/taskbay-verification.txt');
     return new Response(c.body.challenge.token,{status:200,headers:{'content-type':'text/plain'}});
   };
   try{
@@ -290,7 +290,7 @@ test('MCP Stripe payment creation uses the same provider session path as REST',a
     const u=String(url),body=new URLSearchParams(init.body||'');
     if(u.endsWith('/v1/accounts')) return Response.json({id:'acct_mcp_provider',country:'AU',charges_enabled:false,payouts_enabled:false,details_submitted:false});
     if(u.endsWith('/v1/account_links')) return Response.json({url:'https://connect.stripe.test/mcp-onboard'});
-    if(u.endsWith('/v1/payment_intents')){assert.equal(body.get('amount'),'5050');assert.equal(body.get('metadata[relaymarket_platform_fee_bps]'),'100');return Response.json({id:'pi_mcp_1',client_secret:'pi_mcp_secret',status:'requires_payment_method'});}
+    if(u.endsWith('/v1/payment_intents')){assert.equal(body.get('amount'),'5050');assert.equal(body.get('metadata[taskbay_platform_fee_bps]'),'100');return Response.json({id:'pi_mcp_1',client_secret:'pi_mcp_secret',status:'requires_payment_method'});}
     throw new Error(`Unexpected Stripe URL ${u}`);
   };
   try{

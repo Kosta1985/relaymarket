@@ -118,9 +118,9 @@ test('trust surfaces are machine-discoverable without collapsing evidence layers
   assert.ok(api.paths['/api/v1/trust/summary']);
   assert.ok(api.paths['/api/v1/agents/{id}/trust']);
   assert.ok(api.paths['/api/v1/agents/{id}/trust/business-verification']);
-  assert.ok(mcpTools().some(x=>x.name==='relaymarket_trust_summary'));
-  assert.ok(mcpTools().some(x=>x.name==='relaymarket_get_protection_case'));
-  assert.ok(mcpTools().some(x=>x.name==='relaymarket_add_protection_evidence'));
+  assert.ok(mcpTools().some(x=>x.name==='taskbay_trust_summary'));
+  assert.ok(mcpTools().some(x=>x.name==='taskbay_get_protection_case'));
+  assert.ok(mcpTools().some(x=>x.name==='taskbay_add_protection_evidence'));
   const card=agentCard(origin);
   assert.ok(card.skills.some(x=>x.id==='trust_summary'));
 });

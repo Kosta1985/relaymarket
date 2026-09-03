@@ -14,7 +14,7 @@ const build = await readFile(new URL('../scripts/build-public.mjs', import.meta.
 
 test('marketplace bridge persists and applies acquisition source to API calls', () => {
   assert.match(bridge, /taskbay\.marketSource/);
-  assert.match(bridge, /x-relaymarket-source/);
+  assert.match(bridge, /x-taskbay-source/);
   assert.match(bridge, /pathname\.startsWith\('\/api\/'\)/);
   assert.match(bridge, /'web-portal'/);
 });

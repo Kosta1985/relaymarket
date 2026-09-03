@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PLATFORM_FEE_BPS, paymentQuote, paymentTransitionAllowed } from '../src/payments.js';
 
-test('RelayMarket platform fee is exactly 1 percent in basis points',()=>{
+test('TaskBay platform fee is exactly 1 percent in basis points',()=>{
   assert.equal(PLATFORM_FEE_BPS,100);
   const q=paymentQuote(100000,'AUD');
   assert.equal(q.providerAmountMinor,100000);
