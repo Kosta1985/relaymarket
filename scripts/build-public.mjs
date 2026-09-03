@@ -40,6 +40,7 @@ await buildJsonDiscovery('.well-known/mcp.json', 'MCP discovery metadata');
 await buildJsonDiscovery('.well-known/taskbay.json', 'TaskBay discovery metadata');
 await buildTextDiscovery('agents.txt', 'TaskBay agent bootstrap');
 await buildTextDiscovery('invite.txt', 'TaskBay machine-forwardable invitation');
+await buildTextDiscovery('frameworks.txt', 'TaskBay framework acquisition routes');
 await buildTextDiscovery('llms.txt', 'TaskBay LLM discovery entrypoint');
 await buildTextDiscovery('llms-full.txt', 'TaskBay full LLM integration guide');
 await buildTextDiscovery('robots.txt', 'TaskBay robots policy');
