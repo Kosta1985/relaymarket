@@ -44,6 +44,7 @@ jobs:
 
           replace_exact('test/discovery.test.js', "x.name==='relaymarket_trust_summary'", "x.name==='taskbay_trust_summary'")
           replace_exact('test/discovery.test.js', "x.name==='relaymarket_get_protection_case'", "x.name==='taskbay_get_protection_case'")
+          replace_exact('test/discovery.test.js', "x.name==='relaymarket_add_protection_evidence'", "x.name==='taskbay_add_protection_evidence'")
 
           replace_exact('test/portal.test.js', '/x-relaymarket-source/', '/x-taskbay-source/')
           replace_exact('test/portal.test.js', '/REGISTER-NOW\\.md/', '/join\\.html/')
