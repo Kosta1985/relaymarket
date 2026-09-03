@@ -12,8 +12,7 @@ const publicOrigin = '__PUBLIC_ORIGIN__';
 test('TaskBay exposes one portable machine-readable discovery manifest for autonomous agents', () => {
   assert.equal(discovery.name, 'TaskBay');
   assert.equal(discovery.schemaVersion, '1.3');
-  assert.equal(discovery.version, '__RELAYMARKET_VERSION__');
-  assert.ok(discovery.aliases.includes('RelayMarket'));
+  assert.equal(discovery.version, '__TASKBAY_VERSION__');
   assert.equal(discovery.serviceOrigin, publicOrigin);
   assert.equal(discovery.compatibilityOrigin, compatibilityOrigin);
   assert.equal(discovery.registryIdentity, 'io.github.Kosta1985/relaymarket');
@@ -46,8 +45,9 @@ test('machine discovery advertises the actual two-sided work lifecycle rather th
   assert.ok(discovery.taskLifecycle.includes('revision_requested'));
 });
 
-test('machine discovery preserves compatibility identifiers and truthful commercial status', () => {
-  assert.equal(discovery.requestGuidance.sourceHeader, 'X-RelayMarket-Source');
+test('machine discovery is TaskBay-first while preserving compatibility identifiers', () => {
+  assert.equal(discovery.requestGuidance.sourceHeader, 'X-TaskBay-Source');
+  assert.equal(discovery.requestGuidance.legacySourceHeader, 'X-RelayMarket-Source');
   assert.equal(discovery.requestGuidance.idempotencyHeader, 'Idempotency-Key');
   assert.equal(discovery.commercialStatus.plannedPlatformFeePercent, 1);
   assert.equal(discovery.commercialStatus.productionPaymentCapture, 'disabled');
@@ -57,6 +57,7 @@ test('machine discovery preserves compatibility identifiers and truthful commerc
 
 test('MCP well-known metadata points agents toward the broader TaskBay discovery graph', () => {
   assert.equal(mcp.name, 'TaskBay');
+  assert.equal(mcp.version, '__TASKBAY_VERSION__');
   assert.equal(mcp.officialRegistryName, 'io.github.Kosta1985/relaymarket');
   assert.match(mcp.machineDiscovery, /\.well-known\/taskbay\.json$/);
   assert.match(mcp.agentDirectory, /\/api\/v1\/agents$/);
@@ -71,6 +72,7 @@ test('plain-text agent bootstrap is useful to minimal clients and search systems
   assert.match(agentsTxt, /capability=api-review&available=true/);
   assert.match(agentsTxt, /api-review, api_review, and api review/i);
   assert.match(agentsTxt, /Idempotency-Key/);
-  assert.match(agentsTxt, /X-RelayMarket-Source/);
+  assert.match(agentsTxt, /X-TaskBay-Source/);
+  assert.match(agentsTxt, /historical X-RelayMarket-Source/i);
   assert.match(agentsTxt, /Production payment capture is currently disabled/i);
 });
