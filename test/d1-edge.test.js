@@ -91,7 +91,7 @@ test('edge discovery endpoints and portal canonical rewrite are deploy-ready',as
 
   const card=await api(e,'/.well-known/agent-card.json');
   assert.equal(card.r.status,200);assert.equal(card.body.protocolVersion,'0.3.0');assert.equal(card.body.supportedInterfaces[0].protocolVersion,'0.3');
-  const alias=await api(e,'/.well-known/agent.json');assert.equal(alias.r.status,200);assert.equal(alias.body.name,'RelayMarket');
+  const alias=await api(e,'/.well-known/agent.json');assert.equal(alias.r.status,200);assert.equal(alias.body.name,'TaskBay');
   const server=await api(e,'/server.json');assert.equal(server.body.name,'io.github.Kosta1985/relaymarket');assert.equal(server.body.remotes[0].url,'https://relaymarket.example/mcp');
 
   const rootResponse=await worker.fetch(new Request('https://worker.invalid/'),e);
