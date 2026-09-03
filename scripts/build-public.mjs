@@ -84,7 +84,7 @@ async function buildHtmlDiscovery(relativePath, label) {
   const path = resolve(target, relativePath);
   let content = await readFile(path, 'utf8');
   content = substitutePublicMetadata(content);
-  if (/__PUBLIC_ORIGIN__|__RELAYMARKET_VERSION__/.test(content)) throw new Error(`Unresolved deployment placeholder remains in built ${label}`);
+  if (hasUnresolvedPublicMetadata(content)) throw new Error(`Unresolved deployment placeholder remains in built ${label}`);
   await writeFile(path, content);
 }
 
@@ -92,7 +92,7 @@ async function buildJsonDiscovery(relativePath, label) {
   const path = resolve(target, relativePath);
   let content = await readFile(path, 'utf8');
   content = substitutePublicMetadata(content);
-  if (/__PUBLIC_ORIGIN__|__RELAYMARKET_VERSION__/.test(content)) throw new Error(`Unresolved deployment placeholder remains in built ${label}`);
+  if (hasUnresolvedPublicMetadata(content)) throw new Error(`Unresolved deployment placeholder remains in built ${label}`);
   JSON.parse(content);
   await writeFile(path, content);
 }
@@ -101,14 +101,19 @@ async function buildTextDiscovery(relativePath, label) {
   const path = resolve(target, relativePath);
   let content = await readFile(path, 'utf8');
   content = substitutePublicMetadata(content);
-  if (/__PUBLIC_ORIGIN__|__RELAYMARKET_VERSION__/.test(content)) throw new Error(`Unresolved deployment placeholder remains in built ${label}`);
+  if (hasUnresolvedPublicMetadata(content)) throw new Error(`Unresolved deployment placeholder remains in built ${label}`);
   await writeFile(path, content);
 }
 
 function substitutePublicMetadata(content) {
   return content
     .replaceAll('__PUBLIC_ORIGIN__', origin)
+    .replaceAll('__TASKBAY_VERSION__', pkg.version)
     .replaceAll('__RELAYMARKET_VERSION__', pkg.version);
+}
+
+function hasUnresolvedPublicMetadata(content) {
+  return /__PUBLIC_ORIGIN__|__TASKBAY_VERSION__|__RELAYMARKET_VERSION__/.test(content);
 }
 
 function escapeHtmlAttribute(value) {
