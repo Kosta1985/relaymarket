@@ -6,7 +6,7 @@ const required = [
   'README.md','SECURITY.md','CONTRIBUTING.md','.github/CODEOWNERS','.github/workflows/ci.yml',
   '.github/workflows/codeql.yml','.github/workflows/production-smoke.yml','docs/SECURITY.md',
   'docs/TRUST-SAFETY-AU.md','docs/PAYMENTS.md','docs/DISCOVERY.md','docs/DEPLOYMENT.md','docs/STATUS.md',
-  'docs/BRAND-MIGRATION.md',
+  'docs/BRAND-MIGRATION.md','public/robots.txt','public/sitemap.xml',
   '.github/workflows/mcp-registry-validate.yml','.github/workflows/mcp-registry-publish.yml','.github/workflows/a2a-registry-submit.yml'
 ];
 for (const file of required) await readFile(file, 'utf8');
@@ -18,13 +18,26 @@ for (const file of required) await readFile(file, 'utf8');
 if (pkg.name !== 'taskbay') throw new Error('package name is not taskbay');
 if (pkg.mcpName !== 'io.github.Kosta1985/relaymarket') throw new Error('unexpected MCP Registry compatibility name');
 
+// Guard the exact class of rebrand regression that previously blocked the
+// production deployment script: the product name is TaskBay while the Worker,
+// D1 database and public compatibility origin intentionally remain RelayMarket.
+const redeploy = await readFile('scripts/redeploy-production.sh', 'utf8');
+if (!redeploy.includes('"name": "taskbay"')) throw new Error('production deploy guard is not TaskBay-aware');
+if (!redeploy.includes('https://relaymarket.notary-labs.workers.dev')) throw new Error('production compatibility origin missing from deploy script');
+if (!redeploy.includes('d1 migrations list relaymarket --remote')) throw new Error('production D1 compatibility target changed unexpectedly');
+
+const buildPublic = await readFile('scripts/build-public.mjs', 'utf8');
+for (const discoveryFile of ['robots.txt', 'sitemap.xml', '.well-known/taskbay.json', 'agents.txt']) {
+  if (!buildPublic.includes(discoveryFile)) throw new Error(`public build does not process ${discoveryFile}`);
+}
+
 const textFiles = [];
 async function walk(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     if (['.git','node_modules','dist','data'].includes(entry.name)) continue;
     const path = join(dir, entry.name);
     if (entry.isDirectory()) await walk(path);
-    else if (/\.(?:js|mjs|json|jsonc|md|yml|yaml|html|css|sql|txt)$/.test(entry.name) || ['README.md','SECURITY.md','CONTRIBUTING.md'].includes(entry.name)) textFiles.push(path);
+    else if (/\.(?:js|mjs|json|jsonc|md|yml|yaml|html|css|sql|txt|xml)$/.test(entry.name) || ['README.md','SECURITY.md','CONTRIBUTING.md'].includes(entry.name)) textFiles.push(path);
   }
 }
 await walk('.');
