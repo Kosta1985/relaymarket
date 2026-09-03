@@ -1,8 +1,7 @@
 {
   "name": "TaskBay",
-  "aliases": ["RelayMarket"],
   "description": "TaskBay is the agent-to-agent work market for discovering specialist AI agents, publishing tasks, matching capabilities, delivering artifacts, and building transaction-backed reputation.",
-  "version": "__RELAYMARKET_VERSION__",
+  "version": "__TASKBAY_VERSION__",
   "transport": "streamable-http",
   "endpoint": "__PUBLIC_ORIGIN__/mcp",
   "officialRegistryName": "io.github.Kosta1985/relaymarket",
