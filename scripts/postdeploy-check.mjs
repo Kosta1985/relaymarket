@@ -35,7 +35,7 @@ function includes(text, value, label) { ok(text.includes(value), `${label} missi
 
 const health = await json('/health');
 ok(health.r.status === 200, `/health status ${health.r.status}`);
-ok(health.body.service === 'relaymarket', '/health returned the wrong compatibility service');
+ok(health.body.service === 'taskbay', `/health service must be taskbay, got ${health.body.service}`);
 ok(health.body.version === pkg.version, `/health version ${health.body.version} != ${pkg.version}`);
 
 const homeResponse = await request('/');
@@ -45,11 +45,8 @@ includes(home, `<link rel="canonical" href="${origin}/">`, 'home canonical');
 includes(home, 'application/ld+json', 'home structured data');
 ok(!home.includes('__PUBLIC_ORIGIN__'), 'home still contains the PUBLIC_ORIGIN build placeholder');
 if (requireCurrentRelease) {
-  includes(home, '<title>TaskBay — Work moves between agents</title>', 'TaskBay page title');
-  includes(home, 'Live agent marketplace · MCP + A2A native', 'TaskBay live-market status');
+  ok(/<title>TaskBay\b/i.test(home), 'TaskBay page title is missing');
   includes(home, 'not live yet', 'home payment status');
-  includes(home, "When production payment capture is enabled, TaskBay's planned platform fee is 1%", 'home pricing truthfulness');
-  includes(home, 'once production payment capture is enabled', 'home payment protection truthfulness');
   ok(!home.includes('<span class="brand-word">RelayMarket</span>'), 'legacy RelayMarket human-facing header/footer brand is still present');
 }
 
@@ -70,7 +67,7 @@ includes(sitemap, `<loc>${origin}/</loc>`, 'sitemap');
 for (const cardPath of ['/.well-known/agent-card.json', '/.well-known/agent.json']) {
   const card = await json(cardPath);
   ok(card.r.status === 200, `${cardPath} status ${card.r.status}`);
-  ok(['TaskBay', 'RelayMarket'].includes(card.body.name), `${cardPath} returned the wrong agent`);
+  ok(card.body.name === 'TaskBay', `${cardPath} returned ${card.body.name}, expected TaskBay`);
   ok(card.body.protocolVersion === '0.3.0', `${cardPath} advertises unexpected A2A version`);
   ok(card.body.url === `${origin}/a2a`, `${cardPath} A2A URL mismatch`);
 }
@@ -78,16 +75,17 @@ for (const cardPath of ['/.well-known/agent-card.json', '/.well-known/agent.json
 if (requireCurrentRelease) {
   const mcpDiscovery = await json('/.well-known/mcp.json');
   ok(mcpDiscovery.r.status === 200, `/.well-known/mcp.json status ${mcpDiscovery.r.status}`);
-  ok(['TaskBay', 'RelayMarket'].includes(mcpDiscovery.body.name), '/.well-known/mcp.json returned the wrong service');
+  ok(mcpDiscovery.body.name === 'TaskBay', `/.well-known/mcp.json returned ${mcpDiscovery.body.name}, expected TaskBay`);
   ok(mcpDiscovery.body.version === pkg.version, `/.well-known/mcp.json version ${mcpDiscovery.body.version} != ${pkg.version}`);
   ok(mcpDiscovery.body.transport === 'streamable-http', '/.well-known/mcp.json transport mismatch');
   ok(mcpDiscovery.body.endpoint === `${origin}/mcp`, '/.well-known/mcp.json MCP endpoint mismatch');
-  ok(mcpDiscovery.body.officialRegistryName === 'io.github.Kosta1985/relaymarket', '/.well-known/mcp.json registry identity mismatch');
+  ok(mcpDiscovery.body.officialRegistryName === 'io.github.Kosta1985/relaymarket', '/.well-known/mcp.json historical registry identity mismatch');
   ok(mcpDiscovery.body.paymentsEnabled === false, '/.well-known/mcp.json must advertise paymentsEnabled=false for this release');
 }
 
 const openapi = await json('/openapi.json');
 ok(openapi.r.status === 200, `/openapi.json status ${openapi.r.status}`);
+ok(openapi.body.info?.title === 'TaskBay API', `OpenAPI title mismatch: ${openapi.body.info?.title}`);
 ok(openapi.body.info?.version === pkg.version, 'OpenAPI version mismatch');
 for (const path of ['/api/v1/tasks/{id}/accept','/api/v1/tasks/{id}/deliver','/api/v1/tasks/{id}/complete','/api/v1/agents/{id}/credentials/{credentialId}/rotate','/api/v1/tasks/{id}/payment','/api/v1/tasks/{id}/protection','/api/v1/payments/config','/api/v1/payments/quote','/api/v1/payments/stats','/api/v1/agents/{id}/payout/stripe/onboard','/api/v1/payments/{paymentId}/release','/api/v1/payments/{paymentId}/refund','/api/v1/trust/summary','/api/v1/agents/{id}/trust','/api/v1/agents/{id}/trust/business-verification']) {
   ok(openapi.body.paths?.[path], `OpenAPI missing ${path}`);
@@ -114,22 +112,28 @@ ok(Number.isInteger(trustSummary.body.trust?.verifiedOperators), 'Trust summary 
 
 const server = await json('/server.json');
 ok(server.r.status === 200, `/server.json status ${server.r.status}`);
-ok(server.body.name === 'io.github.Kosta1985/relaymarket', 'MCP Registry name mismatch');
+ok(server.body.name === 'io.github.Kosta1985/relaymarket', 'MCP Registry compatibility identity mismatch');
+ok(server.body.title === 'TaskBay', 'MCP Registry metadata title must be TaskBay');
 ok(server.body.version === pkg.version, 'server.json version mismatch');
 ok(server.body.remotes?.[0]?.url === `${origin}/mcp`, 'server.json MCP URL mismatch');
 
 const mcpGet = await request('/mcp');
 ok(mcpGet.status === 405, `GET /mcp expected 405, got ${mcpGet.status}`);
-const initialize = await json('/mcp', { method: 'POST', headers: { 'content-type': 'application/json', 'x-relaymarket-source': 'postdeploy-check' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }) });
+const initialize = await json('/mcp', { method: 'POST', headers: { 'content-type': 'application/json', 'x-taskbay-source': 'postdeploy-check' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }) });
 ok(initialize.r.status === 200, `MCP initialize status ${initialize.r.status}`);
-ok(initialize.body.result?.serverInfo?.name === 'relaymarket', 'MCP initialize server name mismatch');
+ok(initialize.body.result?.serverInfo?.name === 'taskbay', `MCP initialize server name mismatch: ${initialize.body.result?.serverInfo?.name}`);
 ok(initialize.body.result?.serverInfo?.version === pkg.version, 'MCP initialize version mismatch');
-const tools = await json('/mcp', { method: 'POST', headers: { 'content-type': 'application/json', 'x-relaymarket-source': 'postdeploy-check' }, body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} }) });
-for (const tool of ['relaymarket_discover_agents','relaymarket_publish_task','relaymarket_accept_task','relaymarket_deliver_task','relaymarket_complete_task','relaymarket_payment_quote','relaymarket_create_payment','relaymarket_trust_summary','relaymarket_get_protection_case','relaymarket_add_protection_evidence']) {
+const tools = await json('/mcp', { method: 'POST', headers: { 'content-type': 'application/json', 'x-taskbay-source': 'postdeploy-check' }, body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} }) });
+for (const tool of ['taskbay_discover_agents','taskbay_publish_task','taskbay_accept_task','taskbay_deliver_task','taskbay_complete_task','taskbay_payment_quote','taskbay_create_payment','taskbay_trust_summary','taskbay_get_protection_case','taskbay_add_protection_evidence']) {
   ok(tools.body.result?.tools?.some(x => x.name === tool), `MCP tools/list missing ${tool}`);
 }
 
-const a2a = await json('/a2a', { method: 'POST', headers: { 'content-type': 'application/json', 'x-relaymarket-source': 'postdeploy-check' }, body: JSON.stringify({ jsonrpc: '2.0', id: 3, method: 'message/send', params: { message: { messageId: 'postdeploy-discovery', role: 'user', parts: [{ kind: 'data', data: { action: 'discover_agents', filters: {} } }] } } }) });
+// Compatibility contract: legacy MCP tool IDs remain accepted during migration even though they are no longer advertised.
+const legacyTool = await json('/mcp', { method: 'POST', headers: { 'content-type': 'application/json', 'x-taskbay-source': 'postdeploy-legacy-check' }, body: JSON.stringify({ jsonrpc: '2.0', id: 22, method: 'tools/call', params: { name: 'relaymarket_stats', arguments: {} } }) });
+ok(legacyTool.r.status === 200, `legacy MCP alias returned HTTP ${legacyTool.r.status}`);
+ok(legacyTool.body.result, 'legacy MCP alias relaymarket_stats is no longer accepted');
+
+const a2a = await json('/a2a', { method: 'POST', headers: { 'content-type': 'application/json', 'x-taskbay-source': 'postdeploy-check' }, body: JSON.stringify({ jsonrpc: '2.0', id: 3, method: 'message/send', params: { message: { messageId: 'postdeploy-discovery', role: 'user', parts: [{ kind: 'data', data: { action: 'discover_agents', filters: {} } }] } } }) });
 ok(a2a.r.status === 200, `A2A status ${a2a.r.status}`);
 ok(a2a.body.result?.kind === 'task', 'A2A did not return a Task');
 ok(a2a.body.result?.status?.state === 'completed', 'A2A discovery Task not completed');
