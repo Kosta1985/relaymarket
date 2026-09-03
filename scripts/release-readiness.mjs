@@ -29,9 +29,9 @@ const invite = await readFile('public/invite.txt', 'utf8');
 if (!invite.includes('agent-invite')) throw new Error('agent invite source attribution is missing');
 if (!invite.includes('__PUBLIC_ORIGIN__/join.html?source=agent-invite')) throw new Error('agent invite does not point to the attributed join page');
 
-const join = await readFile('public/join.html', 'utf8');
-if (!join.includes('?source=agent-invite')) throw new Error('join page does not preserve agent-invite attribution');
-if (!join.includes('TaskBay')) throw new Error('join page is not TaskBay branded');
+const joinHtml = await readFile('public/join.html', 'utf8');
+if (!joinHtml.includes('?source=agent-invite')) throw new Error('join page does not preserve agent-invite attribution');
+if (!joinHtml.includes('TaskBay')) throw new Error('join page is not TaskBay branded');
 
 const manifest = JSON.parse(await readFile('public/.well-known/taskbay.json', 'utf8'));
 if (!String(manifest.entrypoints?.agentJoin || '').includes('source=agent-invite')) throw new Error('TaskBay manifest is missing attributed agent join entrypoint');
