@@ -1,6 +1,7 @@
 const $ = (selector) => document.querySelector(selector);
 const state = { agents: [], tasks: [], stats: null, metrics: null, events: [], paymentConfig: null, paymentStats: null, trustSummary: null };
-const SESSION_KEYS = 'relaymarket.sessionCredentials';
+const SESSION_KEYS = 'taskbay.sessionCredentials';
+const LEGACY_SESSION_KEYS = 'relaymarket.sessionCredentials';
 let pendingVerification = null;
 const DEMO_SEED = (() => {
   const raw = new URLSearchParams(window.location.search).get('demo');
@@ -14,7 +15,7 @@ let toastTimer;
 async function api(path, options = {}) {
   const headers = new Headers(options.headers || {});
   headers.set('content-type', 'application/json');
-  headers.set('x-relaymarket-source', 'web-portal');
+  headers.set('x-taskbay-source', 'web-portal');
   const response = await fetch(path, { ...options, headers });
   const payload = response.status === 204 ? null : await response.json();
   if (!response.ok) {
@@ -154,7 +155,7 @@ function renderAgents(rows) {
         <span class="eyebrow">Founding 100</span>
         <h3>The directory is open for its first verified agents.</h3>
         <p>Register a real MCP, A2A, OpenAPI or HTTPS agent, prove control of its endpoint and become publicly discoverable.</p>
-        <div class="founding-actions"><button class="button primary empty-agent-cta" type="button">List a real agent</button><a class="button quiet" href="https://github.com/Kosta1985/relaymarket/blob/main/docs/REGISTER-NOW.md">Read the 60-second guide -></a></div>
+        <div class="founding-actions"><button class="button primary empty-agent-cta" type="button">List a real agent</button><a class="button quiet" href="/join.html">Read the 60-second guide -></a></div>
       </div>`;
       root.querySelector('.empty-agent-cta')?.addEventListener('click', () => openDialog(agentDialog));
     } else {
@@ -393,7 +394,7 @@ function storeCredential(agentId, apiKey) {
   current[agentId] = apiKey;
   sessionStorage.setItem(SESSION_KEYS, JSON.stringify(current));
 }
-function sessionCredentials() { try { return JSON.parse(sessionStorage.getItem(SESSION_KEYS) || '{}'); } catch { return {}; } }
+function sessionCredentials() { try { const current=sessionStorage.getItem(SESSION_KEYS); if(current)return JSON.parse(current); const legacy=sessionStorage.getItem(LEGACY_SESSION_KEYS); if(!legacy)return {}; sessionStorage.setItem(SESSION_KEYS,legacy); return JSON.parse(legacy); } catch { return {}; } }
 function bind(selector, event, handler) { const target = $(selector); if (target) target.addEventListener(event, handler); }
 function openDialog(dialog) { if (dialog?.showModal) dialog.showModal(); }
 function closeDialog(dialog) { if (dialog?.close) dialog.close(); }

@@ -39,7 +39,7 @@ export class D1Repository {
   }
 
   async registerAgent(input,{source='direct'}={}){
-    const a=normalizeAgent(input),src=cleanSource(source),keyId=randomHex(8),apiKey=`rmk_${keyId}_${randomB64(24)}`,credentialId=`cred_${keyId}`,keyHash=await hash(apiKey);
+    const a=normalizeAgent(input),src=cleanSource(source),keyId=randomHex(8),apiKey=`tbk_${keyId}_${randomB64(24)}`,credentialId=`cred_${keyId}`,keyHash=await hash(apiKey);
     try{
       await this.db.batch([
         this.db.prepare(`INSERT INTO agents(id,name,description,capabilities_json,protocols_json,endpoints_json,pricing_json,availability,verified,verified_at,event_source,created_at,updated_at)
@@ -158,13 +158,13 @@ export class D1Repository {
     stmts.push(counterStmt(this.db,day,metric,'all'),counterStmt(this.db,day,metric,src));await this.db.batch(stmts);
   }
 
-  async issueCredential(agentId,{source='direct'}={}){if(!await this.getAgent(agentId))throw problem('agent_not_found',404);const keyId=randomHex(8),apiKey=`rmk_${keyId}_${randomB64(24)}`,credentialId=`cred_${keyId}`,stamp=new Date().toISOString();await this.db.prepare('INSERT INTO agent_credentials(id,agent_id,key_hash,created_at) VALUES(?,?,?,?)').bind(credentialId,agentId,await hash(apiKey),stamp).run();return{apiKey,credentialId,agentId};}
-  async authenticateApiKey(apiKey){if(!apiKey||!String(apiKey).startsWith('rmk_'))return null;const keyHash=await hash(String(apiKey)),row=await this.db.prepare('SELECT id,agent_id FROM agent_credentials WHERE key_hash=? AND revoked_at IS NULL').bind(keyHash).first();if(!row)return null;await this.db.prepare('UPDATE agent_credentials SET last_used_at=? WHERE id=?').bind(new Date().toISOString(),row.id).run();return row.agent_id;}
+  async issueCredential(agentId,{source='direct'}={}){if(!await this.getAgent(agentId))throw problem('agent_not_found',404);const keyId=randomHex(8),apiKey=`tbk_${keyId}_${randomB64(24)}`,credentialId=`cred_${keyId}`,stamp=new Date().toISOString();await this.db.prepare('INSERT INTO agent_credentials(id,agent_id,key_hash,created_at) VALUES(?,?,?,?)').bind(credentialId,agentId,await hash(apiKey),stamp).run();return{apiKey,credentialId,agentId};}
+  async authenticateApiKey(apiKey){if(!apiKey||!/^((tbk)|(rmk))_/.test(String(apiKey)))return null;const keyHash=await hash(String(apiKey)),row=await this.db.prepare('SELECT id,agent_id FROM agent_credentials WHERE key_hash=? AND revoked_at IS NULL').bind(keyHash).first();if(!row)return null;await this.db.prepare('UPDATE agent_credentials SET last_used_at=? WHERE id=?').bind(new Date().toISOString(),row.id).run();return row.agent_id;}
   async listCredentials(agentId){if(!await this.getAgent(agentId))throw problem('agent_not_found',404);const out=await this.db.prepare('SELECT id,agent_id,created_at,last_used_at,revoked_at FROM agent_credentials WHERE agent_id=? ORDER BY created_at DESC').bind(agentId).all();return(out.results||[]).map(r=>({id:r.id,agentId:r.agent_id,createdAt:r.created_at,lastUsedAt:r.last_used_at,revokedAt:r.revoked_at,active:!r.revoked_at}));}
   async rotateCredential(agentId,credentialId,{source='direct'}={}){
     const old=await this.db.prepare('SELECT id FROM agent_credentials WHERE id=? AND agent_id=? AND revoked_at IS NULL').bind(credentialId,agentId).first();
     if(!old)throw problem('credential_not_found',404);
-    const keyId=randomHex(8),apiKey=`rmk_${keyId}_${randomB64(24)}`,nextId=`cred_${keyId}`,stamp=new Date().toISOString(),keyHash=await hash(apiKey);
+    const keyId=randomHex(8),apiKey=`tbk_${keyId}_${randomB64(24)}`,nextId=`cred_${keyId}`,stamp=new Date().toISOString(),keyHash=await hash(apiKey);
     const results=await this.db.batch([
       this.db.prepare('INSERT INTO agent_credentials(id,agent_id,key_hash,created_at) VALUES(?,?,?,?)').bind(nextId,agentId,keyHash,stamp),
       this.db.prepare("UPDATE agent_credentials SET revoked_at=?,revocation_reason='rotated' WHERE id=? AND agent_id=? AND revoked_at IS NULL").bind(stamp,credentialId,agentId)
@@ -183,7 +183,7 @@ export class D1Repository {
 
   async createVerificationChallenge(agentId,endpointIndex=0,{source='direct'}={}){
     const agent=await this.getAgent(agentId);if(!agent)throw problem('agent_not_found',404);const endpoint=agent.endpoints?.[Number(endpointIndex)];if(!endpoint)throw problem('endpoint_not_found',404);
-    const token=`rm_verify_${randomB64(24)}`,stamp=new Date().toISOString(),expires=new Date(Date.now()+15*60_000).toISOString(),origin=new URL(endpoint.url).origin,challenge={id:uid('vfy'),agentId,endpointUrl:endpoint.url,verificationUrl:`${origin}/.well-known/relaymarket-verification.txt`,token,createdAt:stamp,expiresAt:expires,completedAt:null};
+    const token=`tb_verify_${randomB64(24)}`,stamp=new Date().toISOString(),expires=new Date(Date.now()+15*60_000).toISOString(),origin=new URL(endpoint.url).origin,challenge={id:uid('vfy'),agentId,endpointUrl:endpoint.url,verificationUrl:`${origin}/.well-known/taskbay-verification.txt`,token,createdAt:stamp,expiresAt:expires,completedAt:null};
     await this.db.prepare('DELETE FROM agent_verification_challenges WHERE agent_id=? AND completed_at IS NULL').bind(agentId).run();
     await this.db.prepare(`INSERT INTO agent_verification_challenges(id,agent_id,endpoint_url,verification_url,token_hash,created_at,expires_at,completed_at,event_source) VALUES(?,?,?,?,?,?,?,NULL,?)`).bind(challenge.id,agentId,endpoint.url,challenge.verificationUrl,await hash(token),stamp,expires,cleanSource(source)).run();
     return challenge;

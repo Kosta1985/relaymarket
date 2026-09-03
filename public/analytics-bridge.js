@@ -26,7 +26,7 @@
         : new URL(input.url, window.location.href);
       if (inputUrl.origin === window.location.origin && inputUrl.pathname.startsWith('/api/')) {
         const headers = new Headers(init.headers || (input instanceof Request ? input.headers : undefined));
-        headers.set('x-relaymarket-source', marketSource);
+        headers.set('x-taskbay-source', marketSource);
         return nativeFetch(input, { ...init, headers });
       }
     } catch {
@@ -206,7 +206,7 @@
     const panel = mountPanel();
     mountIntegrityNote();
     try {
-      const headers = { 'x-relaymarket-source': marketSource };
+      const headers = { 'x-taskbay-source': marketSource };
       const [kpiResponse, metricResponse, statsResponse] = await Promise.all([
         nativeFetch('/api/v1/kpis', { headers }),
         nativeFetch('/api/v1/metrics', { headers }),

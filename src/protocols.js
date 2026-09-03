@@ -21,18 +21,18 @@ export async function handleMcp(request, ctx = {}) {
       return rpc(id, {
         supportedVersions: [MCP_LEGACY_VERSION],
         capabilities: { tools: { listChanged: false } },
-        instructions: 'Use RelayMarket tools to discover agents, publish tasks, rank matches, inspect tasks, read task messages, and query marketplace statistics.',
+        instructions: 'Use TaskBay tools to discover agents, publish tasks, rank matches, inspect tasks, read task messages, and query marketplace statistics.',
         ttlMs: 300000,
         cacheScope: 'public',
-        _meta: { 'io.modelcontextprotocol/serverInfo': { name: 'relaymarket', version: VERSION } }
+        _meta: { 'io.modelcontextprotocol/serverInfo': { name: 'taskbay', version: VERSION } }
       });
     }
     if (body.method === 'initialize') {
       return rpc(id, {
         protocolVersion: MCP_LEGACY_VERSION,
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: 'relaymarket', version: VERSION },
-        instructions: 'RelayMarket is an agent-to-agent marketplace. Prefer the discovery and task tools over scraping the human portal.'
+        serverInfo: { name: 'taskbay', version: VERSION },
+        instructions: 'TaskBay is an agent-to-agent marketplace. Prefer the discovery and task tools over scraping the human portal.'
       });
     }
     if (body.method === 'notifications/initialized') return new Response(null, { status: 202 });
@@ -101,11 +101,11 @@ export async function handleA2A(request, ctx = {}) {
         status: { state: 'completed', timestamp: new Date().toISOString() },
         artifacts: [{
           artifactId: `artifact_${crypto.randomUUID()}`,
-          name: 'RelayMarketResult',
+          name: 'TaskBayResult',
           parts: [{ kind: 'data', data: result }]
         }],
         history: message.messageId ? [{ ...message, taskId, contextId, kind: 'message' }] : undefined,
-        metadata: { service: 'RelayMarket', action: data.action || 'help' }
+        metadata: { service: 'TaskBay', action: data.action || 'help' }
       }
     });
   } catch (e) {
@@ -115,39 +115,39 @@ export async function handleA2A(request, ctx = {}) {
 
 async function callTool(name, args, request, ctx = {}) {
   let value;
-  if (name === 'relaymarket_discover_agents') value = { agents: listAgents({ capability: args.capability, protocol: args.protocol, available: args.available === false ? undefined : 'true' }) };
-  else if (name === 'relaymarket_publish_task') {
+  if (['taskbay_discover_agents','relaymarket_discover_agents'].includes(name)) value = { agents: listAgents({ capability: args.capability, protocol: args.protocol, available: args.available === false ? undefined : 'true' }) };
+  else if (['taskbay_publish_task','relaymarket_publish_task'].includes(name)) {
     if (args.requesterAgentId) await requireProtocolAgent(request, args.requesterAgentId);
     value = await protocolMutationLocal(request, 'publish_task', args, async () => ({ task: await createTask(args, { source: ctx.source }) }));
-  } else if (name === 'relaymarket_task_matches') value = { matches: matches(args.taskId) };
-  else if (name === 'relaymarket_get_task') value = { task: getTask(args.taskId) };
-  else if (name === 'relaymarket_task_messages') { await requireProtocolTaskParticipant(request, args.taskId); value = { messages: listMessages(args.taskId) }; }
-  else if (name === 'relaymarket_accept_task') {
+  } else if (['taskbay_task_matches','relaymarket_task_matches'].includes(name)) value = { matches: matches(args.taskId) };
+  else if (['taskbay_get_task','relaymarket_get_task'].includes(name)) value = { task: getTask(args.taskId) };
+  else if (['taskbay_task_messages','relaymarket_task_messages'].includes(name)) { await requireProtocolTaskParticipant(request, args.taskId); value = { messages: listMessages(args.taskId) }; }
+  else if (['taskbay_accept_task','relaymarket_accept_task'].includes(name)) {
     await requireProtocolAgent(request, args.providerAgentId);
     value = await protocolMutationLocal(request, 'accept_task', args, async () => ({ task: await acceptTask(args.taskId, args.providerAgentId, { source: ctx.source }) }));
-  } else if (name === 'relaymarket_start_task') {
+  } else if (['taskbay_start_task','relaymarket_start_task'].includes(name)) {
     await requireProtocolAgent(request, args.providerAgentId);
     value = await protocolMutationLocal(request, 'start_task', args, async () => ({ task: await startTask(args.taskId, args.providerAgentId, { source: ctx.source }) }));
-  } else if (name === 'relaymarket_deliver_task') {
+  } else if (['taskbay_deliver_task','relaymarket_deliver_task'].includes(name)) {
     await requireProtocolAgent(request, args.providerAgentId);
     value = await protocolMutationLocal(request, 'deliver_task', args, async () => ({ task: await deliverTask(args.taskId, args.providerAgentId, args, { source: ctx.source }) }));
-  } else if (name === 'relaymarket_complete_task') {
+  } else if (['taskbay_complete_task','relaymarket_complete_task'].includes(name)) {
     await requireProtocolAgent(request, args.requesterAgentId);
     value = await protocolMutationLocal(request, 'complete_task', args, async () => ({ task: await completeTask(args.taskId, args.requesterAgentId, args, { source: ctx.source }) }));
-  } else if (name === 'relaymarket_dispute_task') {
+  } else if (['taskbay_dispute_task','relaymarket_dispute_task'].includes(name)) {
     await requireProtocolAgent(request, args.requesterAgentId);
     value = await protocolMutationLocal(request, 'dispute_task', args, async () => ({ task: await disputeTask(args.taskId, args.requesterAgentId, args, { source: ctx.source }) }));
-  } else if (name === 'relaymarket_cancel_task') {
+  } else if (['taskbay_cancel_task','relaymarket_cancel_task'].includes(name)) {
     await requireProtocolAgent(request, args.actorAgentId);
     value = await protocolMutationLocal(request, 'cancel_task', args, async () => ({ task: await cancelTask(args.taskId, args.actorAgentId, { source: ctx.source }) }));
-  } else if (name === 'relaymarket_send_message') {
+  } else if (['taskbay_send_message','relaymarket_send_message'].includes(name)) {
     await requireProtocolAgent(request, args.fromAgentId);
     value = await protocolMutationLocal(request, 'send_message', args, async () => ({ message: await createMessage(args.taskId, args, { source: ctx.source }) }));
-  } else if (name === 'relaymarket_payment_quote') value = { quote: paymentQuote(args.amountMinor, args.currency || 'USD') };
-  else if (name === 'relaymarket_create_payment') {
+  } else if (['taskbay_payment_quote','relaymarket_payment_quote'].includes(name)) value = { quote: paymentQuote(args.amountMinor, args.currency || 'USD') };
+  else if (['taskbay_create_payment','relaymarket_create_payment'].includes(name)) {
     await requireProtocolAgent(request, args.requesterAgentId);
     value = await protocolMutationLocal(request, 'create_payment', args, async () => ({ payment: await createPayment(args.taskId, args.requesterAgentId, args, { source: ctx.source }) }));
-  } else if (name === 'relaymarket_stats') value = stats();
+  } else if (['taskbay_stats','relaymarket_stats'].includes(name)) value = stats();
   else throw new Error('Unknown tool');
   return { content: [{ type: 'text', text: JSON.stringify(value) }], structuredContent: value };
 }

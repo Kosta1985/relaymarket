@@ -20,10 +20,10 @@ export async function stripeCreatePaymentIntent(secretKey,payment,{idempotencyKe
   body.set('amount',String(payment.payerTotalMinor));
   body.set('currency',String(payment.currency).toLowerCase());
   body.set('automatic_payment_methods[enabled]','true');
-  body.set('transfer_group',`relaymarket_${payment.taskId}`);
-  body.set('metadata[relaymarket_payment_id]',payment.id);
-  body.set('metadata[relaymarket_task_id]',payment.taskId);
-  body.set('metadata[relaymarket_platform_fee_bps]',String(payment.platformFeeBps));
+  body.set('transfer_group',`taskbay_${payment.taskId}`);
+  body.set('metadata[taskbay_payment_id]',payment.id);
+  body.set('metadata[taskbay_task_id]',payment.taskId);
+  body.set('metadata[taskbay_platform_fee_bps]',String(payment.platformFeeBps));
   return stripePost(secretKey,'/payment_intents',body,idempotencyKey);
 }
 
@@ -32,9 +32,9 @@ export async function stripeCreateTransfer(secretKey,{payment,destination,idempo
   body.set('amount',String(payment.amountMinor));
   body.set('currency',String(payment.currency).toLowerCase());
   body.set('destination',destination);
-  body.set('transfer_group',`relaymarket_${payment.taskId}`);
-  body.set('metadata[relaymarket_payment_id]',payment.id);
-  body.set('metadata[relaymarket_task_id]',payment.taskId);
+  body.set('transfer_group',`taskbay_${payment.taskId}`);
+  body.set('metadata[taskbay_payment_id]',payment.id);
+  body.set('metadata[taskbay_task_id]',payment.taskId);
   return stripePost(secretKey,'/transfers',body,idempotencyKey);
 }
 

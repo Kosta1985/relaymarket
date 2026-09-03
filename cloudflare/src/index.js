@@ -30,7 +30,7 @@ const HEADERS = {
   'cache-control': 'no-store',
   ...SECURITY_HEADERS
 };
-const ALLOW_HEADERS = 'content-type,idempotency-key,x-relaymarket-source,authorization,mcp-protocol-version,mcp-method,mcp-name,accept';
+const ALLOW_HEADERS = 'content-type,idempotency-key,x-taskbay-source,x-relaymarket-source,authorization,mcp-protocol-version,mcp-method,mcp-name,accept';
 
 export default {
   async fetch(request, env) {
@@ -43,7 +43,7 @@ export default {
     }
 
     if (url.pathname === '/health') {
-      return json({ status: 'ok', service: 'relaymarket', runtime: 'cloudflare-worker', storage: env.DB ? 'd1' : 'unbound', version: VERSION });
+      return json({ status: 'ok', service: 'taskbay', runtime: 'cloudflare-worker', storage: env.DB ? 'd1' : 'unbound', version: VERSION });
     }
 
     // Search and machine-discovery endpoints intentionally remain available
@@ -199,11 +199,11 @@ export default {
             if(!env.STRIPE_SECRET_KEY)throw problem('stripe_secret_not_configured',503);
             if(decision==='release'){
               const payout=await repo.getPayoutAccount(payment.providerAgentId);if(!payout||!payout.payoutsEnabled)throw problem('provider_payout_account_not_ready',409);
-              const transfer=await stripeCreateTransfer(env.STRIPE_SECRET_KEY,{payment,destination:payout.externalAccountId,idempotencyKey:`relaymarket-protection-release-${payment.id}`});
+              const transfer=await stripeCreateTransfer(env.STRIPE_SECRET_KEY,{payment,destination:payout.externalAccountId,idempotencyKey:`taskbay-protection-release-${payment.id}`});
               await repo.transitionPayment(payment.id,'released',null,{transferReference:transfer.id},{source:'trust-admin',system:true});
             }else if(decision==='refund'){
-              if(!payment.providerReference)throw problem('stripe_payment_intent_missing',409);let reversal=null;if(payment.status==='released'&&payment.transferReference)reversal=await stripeCreateTransferReversal(env.STRIPE_SECRET_KEY,{transferId:payment.transferReference,idempotencyKey:`relaymarket-protection-reversal-${payment.id}`});
-              const refund=await stripeCreateRefund(env.STRIPE_SECRET_KEY,{paymentIntentId:payment.providerReference,idempotencyKey:`relaymarket-protection-refund-${payment.id}`});
+              if(!payment.providerReference)throw problem('stripe_payment_intent_missing',409);let reversal=null;if(payment.status==='released'&&payment.transferReference)reversal=await stripeCreateTransferReversal(env.STRIPE_SECRET_KEY,{transferId:payment.transferReference,idempotencyKey:`taskbay-protection-reversal-${payment.id}`});
+              const refund=await stripeCreateRefund(env.STRIPE_SECRET_KEY,{paymentIntentId:payment.providerReference,idempotencyKey:`taskbay-protection-refund-${payment.id}`});
               await repo.transitionPayment(payment.id,'refunded',null,{refundReference:refund.id,reversalReference:reversal?.id},{source:'trust-admin',system:true});
             }else throw problem('protection_resolution_invalid',400);
           }else if(payment&&['mock','disabled'].includes(payment.provider)){
@@ -448,7 +448,7 @@ async function handleStripeWebhook(request, env, repo) {
   try{
     const object = event?.data?.object || {};
     if (event.type === 'payment_intent.succeeded') {
-      const paymentId = object.metadata?.relaymarket_payment_id;
+      const paymentId = (object.metadata?.taskbay_payment_id || object.metadata?.relaymarket_payment_id);
       const payment = paymentId ? await repo.getPayment(paymentId) : await repo.getPaymentByProviderReference(object.id);
       if (payment) {
         if (object.amount_received != null && Number(object.amount_received) !== payment.payerTotalMinor) throw problem('stripe_payment_amount_mismatch',409);
@@ -456,7 +456,7 @@ async function handleStripeWebhook(request, env, repo) {
         await repo.transitionPayment(payment.id,'funded',null,{providerReference:object.id},{source:'stripe-webhook',system:true});
       }
     } else if (event.type === 'payment_intent.payment_failed' || event.type === 'payment_intent.canceled') {
-      const paymentId = object.metadata?.relaymarket_payment_id;
+      const paymentId = (object.metadata?.taskbay_payment_id || object.metadata?.relaymarket_payment_id);
       const payment = paymentId ? await repo.getPayment(paymentId) : await repo.getPaymentByProviderReference(object.id);
       if (payment && payment.status === 'created') await repo.transitionPayment(payment.id,event.type.endsWith('canceled')?'cancelled':'failed',null,{providerReference:object.id},{source:'stripe-webhook',system:true});
     } else if (event.type === 'account.updated') {
@@ -557,7 +557,7 @@ function idempotencyKey(request) {
 }
 
 function requestSource(request, url) {
-  return String(request.headers.get('x-relaymarket-source') || url.searchParams.get('source') || 'direct')
+  return String(request.headers.get('x-taskbay-source') || request.headers.get('x-relaymarket-source') || url.searchParams.get('source') || 'direct')
     .toLowerCase().replace(/[^a-z0-9_.:-]/g, '').slice(0, 80) || 'direct';
 }
 
@@ -569,18 +569,18 @@ async function handleMcp(request, repo, source, env) {
       return rpc(id, {
         supportedVersions: [MCP_LEGACY_VERSION],
         capabilities: { tools: { listChanged: false } },
-        instructions: 'Use RelayMarket tools to discover agents, publish tasks, rank matches, inspect tasks, read task messages, and query marketplace statistics.',
+        instructions: 'Use TaskBay tools to discover agents, publish tasks, rank matches, inspect tasks, read task messages, and query marketplace statistics.',
         ttlMs: 300000,
         cacheScope: 'public',
-        _meta: { 'io.modelcontextprotocol/serverInfo': { name: 'relaymarket', version: VERSION } }
+        _meta: { 'io.modelcontextprotocol/serverInfo': { name: 'taskbay', version: VERSION } }
       });
     }
     if (body.method === 'initialize') {
       return rpc(id, {
         protocolVersion: MCP_LEGACY_VERSION,
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: 'relaymarket', version: VERSION },
-        instructions: 'RelayMarket is an agent-to-agent marketplace. Prefer the discovery and task tools over scraping the human portal.'
+        serverInfo: { name: 'taskbay', version: VERSION },
+        instructions: 'TaskBay is an agent-to-agent marketplace. Prefer the discovery and task tools over scraping the human portal.'
       });
     }
     if (body.method === 'notifications/initialized') return new Response(null, { status: 202, headers: CORS });
@@ -589,45 +589,45 @@ async function handleMcp(request, repo, source, env) {
       const args = body.params?.arguments || {};
       const name = body.params?.name;
       let value;
-      if (name === 'relaymarket_discover_agents') value = { agents: await repo.listAgents({ capability: args.capability, protocol: args.protocol, available: args.available === false ? undefined : 'true' }) };
-      else if (name === 'relaymarket_publish_task') {
+      if (['taskbay_discover_agents','relaymarket_discover_agents'].includes(name)) value = { agents: await repo.listAgents({ capability: args.capability, protocol: args.protocol, available: args.available === false ? undefined : 'true' }) };
+      else if (['taskbay_publish_task','relaymarket_publish_task'].includes(name)) {
         if (args.requesterAgentId) await requireAgent(request, repo, args.requesterAgentId);
         value = await protocolMutation(repo, request, 'publish_task', args, async () => ({ task: await repo.createTask(args, { source }) }));
-      } else if (name === 'relaymarket_task_matches') value = { matches: await repo.matches(args.taskId) };
-      else if (name === 'relaymarket_get_task') value = { task: await repo.getTask(args.taskId) };
-      else if (name === 'relaymarket_task_messages') { await requireTaskParticipant(request, repo, args.taskId); value = { messages: await repo.listMessages(args.taskId) }; }
-      else if (name === 'relaymarket_accept_task') {
+      } else if (['taskbay_task_matches','relaymarket_task_matches'].includes(name)) value = { matches: await repo.matches(args.taskId) };
+      else if (['taskbay_get_task','relaymarket_get_task'].includes(name)) value = { task: await repo.getTask(args.taskId) };
+      else if (['taskbay_task_messages','relaymarket_task_messages'].includes(name)) { await requireTaskParticipant(request, repo, args.taskId); value = { messages: await repo.listMessages(args.taskId) }; }
+      else if (['taskbay_accept_task','relaymarket_accept_task'].includes(name)) {
         await requireAgent(request, repo, args.providerAgentId);
         value = await protocolMutation(repo, request, 'accept_task', args, async () => {const task=await repo.transition(args.taskId,'accepted',args.providerAgentId,args,{source});await repo.evaluateTaskRisk(args.taskId,{source});return{task};});
-      } else if (name === 'relaymarket_start_task') {
+      } else if (['taskbay_start_task','relaymarket_start_task'].includes(name)) {
         await requireAgent(request, repo, args.providerAgentId);
         value = await protocolMutation(repo, request, 'start_task', args, async () => ({ task: await repo.transition(args.taskId, 'working', args.providerAgentId, args, { source }) }));
-      } else if (name === 'relaymarket_deliver_task') {
+      } else if (['taskbay_deliver_task','relaymarket_deliver_task'].includes(name)) {
         await requireAgent(request, repo, args.providerAgentId);
         value = await protocolMutation(repo, request, 'deliver_task', args, async () => ({ task: await repo.transition(args.taskId, 'delivered', args.providerAgentId, args, { source }) }));
-      } else if (name === 'relaymarket_complete_task') {
+      } else if (['taskbay_complete_task','relaymarket_complete_task'].includes(name)) {
         await requireAgent(request, repo, args.requesterAgentId);
         value = await protocolMutation(repo, request, 'complete_task', args, async () => ({ task: await repo.transition(args.taskId, 'completed', args.requesterAgentId, args, { source }) }));
-      } else if (name === 'relaymarket_dispute_task') {
+      } else if (['taskbay_dispute_task','relaymarket_dispute_task'].includes(name)) {
         await requireAgent(request, repo, args.requesterAgentId);
         value = await protocolMutation(repo, request, 'dispute_task', args, async () => ({ task: await repo.transition(args.taskId, 'disputed', args.requesterAgentId, args, { source }) }));
-      } else if (name === 'relaymarket_cancel_task') {
+      } else if (['taskbay_cancel_task','relaymarket_cancel_task'].includes(name)) {
         await requireAgent(request, repo, args.actorAgentId);
         value = await protocolMutation(repo, request, 'cancel_task', args, async () => ({ task: await repo.transition(args.taskId, 'cancelled', args.actorAgentId, args, { source }) }));
-      } else if (name === 'relaymarket_send_message') {
+      } else if (['taskbay_send_message','relaymarket_send_message'].includes(name)) {
         await requireAgent(request, repo, args.fromAgentId);
         value = await protocolMutation(repo, request, 'send_message', args, async () => ({ message: await repo.createMessage(args.taskId, args, { source }) }));
-      } else if (name === 'relaymarket_get_protection_case') {
+      } else if (['taskbay_get_protection_case','relaymarket_get_protection_case'].includes(name)) {
         await requireAgent(request,repo,args.actorAgentId);const task=await repo.getTask(args.taskId);if(!task||![task.requesterAgentId,task.providerAgentId].includes(args.actorAgentId))throw problem('actor_not_authorized',403);value={protection:await repo.getProtectionCaseByTask(args.taskId)};
-      } else if (name === 'relaymarket_add_protection_evidence') {
+      } else if (['taskbay_add_protection_evidence','relaymarket_add_protection_evidence'].includes(name)) {
         await requireAgent(request,repo,args.actorAgentId);const task=await repo.getTask(args.taskId);if(!task||![task.requesterAgentId,task.providerAgentId].includes(args.actorAgentId))throw problem('actor_not_authorized',403);const c=await repo.getProtectionCaseByTask(args.taskId);if(!c)throw problem('protection_case_not_found',404);value=await protocolMutation(repo,request,'add_protection_evidence',args,async()=>({protection:await repo.addProtectionEvidence(c.id,args.actorAgentId,args)}));
-      } else if (name === 'relaymarket_payment_quote') value = { quote: paymentQuote(args.amountMinor, args.currency || 'USD') };
-      else if (name === 'relaymarket_create_payment') {
+      } else if (['taskbay_payment_quote','relaymarket_payment_quote'].includes(name)) value = { quote: paymentQuote(args.amountMinor, args.currency || 'USD') };
+      else if (['taskbay_create_payment','relaymarket_create_payment'].includes(name)) {
         if ((env.PAYMENT_PROVIDER || 'disabled') === 'disabled') throw problem('payments_not_configured', 503);
         await requireAgent(request, repo, args.requesterAgentId);
         value = await protocolMutation(repo, request, 'create_payment', args, async () => await createProviderPayment(repo, env, args.taskId, args.requesterAgentId, args, source));
-      } else if (name === 'relaymarket_trust_summary') value = { trust: await repo.trustSummary() };
-      else if (name === 'relaymarket_stats') value = await repo.stats();
+      } else if (['taskbay_trust_summary','relaymarket_trust_summary'].includes(name)) value = { trust: await repo.trustSummary() };
+      else if (['taskbay_stats','relaymarket_stats'].includes(name)) value = await repo.stats();
       else throw problem('unknown_tool', 400);
       return rpc(id, { content: [{ type: 'text', text: JSON.stringify(value) }], structuredContent: value });
     }

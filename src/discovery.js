@@ -63,7 +63,7 @@ export function agentCard(origin) {
 export function openApi(origin) {
   const bearer = { type: 'http', scheme: 'bearer', bearerFormat: 'TaskBay Agent API Key' };
   const idem = { name: 'Idempotency-Key', in: 'header', required: false, schema: { type: 'string', minLength: 8, maxLength: 200 }, description: 'Retry key for mutation safety. Reusing a key with a different request body returns a conflict.' };
-  const source = { name: 'X-RelayMarket-Source', in: 'header', required: false, schema: { type: 'string', maxLength: 80 }, description: 'Legacy compatibility source-attribution header. Optional labels include mcp-registry, a2a-registry, sdk-python, or web-portal.' };
+  const source = { name: 'X-TaskBay-Source', in: 'header', required: false, schema: { type: 'string', maxLength: 80 }, description: 'TaskBay source-attribution header. Optional labels include mcp-registry, a2a-registry, sdk-python, or web-portal.' };
   const id = { name: 'id', in: 'path', required: true, schema: { type: 'string' } };
   const credentialId = { name: 'credentialId', in: 'path', required: true, schema: { type: 'string' } };
   const challengeId = { name: 'challengeId', in: 'path', required: true, schema: { type: 'string' } };
@@ -159,12 +159,12 @@ export function openApi(origin) {
 export function mcpTools() {
   return [
     {
-      name: 'relaymarket_discover_agents',
+      name: 'taskbay_discover_agents',
       description: 'Find available agents by capability or protocol.',
       inputSchema: { type: 'object', properties: { capability: { type: 'string' }, protocol: { type: 'string' }, available: { type: 'boolean' } } }
     },
     {
-      name: 'relaymarket_publish_task',
+      name: 'taskbay_publish_task',
       description: 'Publish a task to the agent marketplace.',
       inputSchema: {
         type: 'object',
@@ -179,82 +179,82 @@ export function mcpTools() {
       }
     },
     {
-      name: 'relaymarket_task_matches',
+      name: 'taskbay_task_matches',
       description: 'Rank agents for a marketplace task.',
       inputSchema: { type: 'object', required: ['taskId'], properties: { taskId: { type: 'string' } } }
     },
     {
-      name: 'relaymarket_get_task',
+      name: 'taskbay_get_task',
       description: 'Retrieve a task by ID.',
       inputSchema: { type: 'object', required: ['taskId'], properties: { taskId: { type: 'string' } } }
     },
     {
-      name: 'relaymarket_task_messages',
+      name: 'taskbay_task_messages',
       description: 'Read task participant messages. Requires an API key belonging to the requester or provider.',
       inputSchema: { type: 'object', required: ['taskId'], properties: { taskId: { type: 'string' } } }
     },
     {
-      name: 'relaymarket_accept_task',
+      name: 'taskbay_accept_task',
       description: 'Accept an open task as its provider agent. Requires the provider agent API key in the HTTP Authorization header.',
       inputSchema: { type: 'object', required: ['taskId','providerAgentId'], properties: { taskId: { type: 'string' }, providerAgentId: { type: 'string' } } }
     },
     {
-      name: 'relaymarket_start_task',
+      name: 'taskbay_start_task',
       description: 'Mark an accepted task as working. Requires the provider agent API key.',
       inputSchema: { type: 'object', required: ['taskId','providerAgentId'], properties: { taskId: { type: 'string' }, providerAgentId: { type: 'string' } } }
     },
     {
-      name: 'relaymarket_deliver_task',
+      name: 'taskbay_deliver_task',
       description: 'Deliver an artifact for a working task. TaskBay records its SHA-256 digest. Requires the provider agent API key.',
       inputSchema: { type: 'object', required: ['taskId','providerAgentId','artifact'], properties: { taskId: { type: 'string' }, providerAgentId: { type: 'string' }, artifact: {}, note: { type: 'string' } } }
     },
     {
-      name: 'relaymarket_complete_task',
+      name: 'taskbay_complete_task',
       description: 'Complete a delivered or disputed task and optionally rate the provider. Requires the requester agent API key.',
       inputSchema: { type: 'object', required: ['taskId','requesterAgentId'], properties: { taskId: { type: 'string' }, requesterAgentId: { type: 'string' }, rating: { type: 'integer', minimum: 1, maximum: 5 }, comment: { type: 'string' } } }
     },
     {
-      name: 'relaymarket_dispute_task',
+      name: 'taskbay_dispute_task',
       description: 'Dispute a delivered task. Requires the requester agent API key.',
       inputSchema: { type: 'object', required: ['taskId','requesterAgentId'], properties: { taskId: { type: 'string' }, requesterAgentId: { type: 'string' }, reason: { type: 'string' } } }
     },
     {
-      name: 'relaymarket_cancel_task',
+      name: 'taskbay_cancel_task',
       description: 'Cancel an eligible task as an authorized participant.',
       inputSchema: { type: 'object', required: ['taskId','actorAgentId'], properties: { taskId: { type: 'string' }, actorAgentId: { type: 'string' } } }
     },
     {
-      name: 'relaymarket_send_message',
+      name: 'taskbay_send_message',
       description: 'Send a task-scoped message as a requester or provider agent.',
       inputSchema: { type: 'object', required: ['taskId','fromAgentId','body'], properties: { taskId: { type: 'string' }, fromAgentId: { type: 'string' }, toAgentId: { type: 'string' }, type: { type: 'string', enum: ['note','question','answer','system'] }, body: { type: 'string' } } }
     },
     {
-      name: 'relaymarket_get_protection_case',
+      name: 'taskbay_get_protection_case',
       description: 'Read the private Payment Protection evidence case for a task. Requires a task-participant API key.',
       inputSchema: { type: 'object', required: ['taskId','actorAgentId'], properties: { taskId: { type: 'string' }, actorAgentId: { type: 'string' } } }
     },
     {
-      name: 'relaymarket_add_protection_evidence',
+      name: 'taskbay_add_protection_evidence',
       description: 'Attach participant evidence to an open Payment Protection case.',
       inputSchema: { type: 'object', required: ['taskId','actorAgentId','content'], properties: { taskId: { type: 'string' }, actorAgentId: { type: 'string' }, evidenceType: { type: 'string', enum: ['note','artifact_reference','message_reference','external_reference'] }, content: {} } }
     },
     {
-      name: 'relaymarket_payment_quote',
+      name: 'taskbay_payment_quote',
       description: 'Calculate the 1% TaskBay platform fee and payer total using integer minor units.',
       inputSchema: { type: 'object', required: ['amountMinor'], properties: { amountMinor: { type: 'integer', minimum: 1 }, currency: { type: 'string', minLength: 3, maxLength: 3 } } }
     },
     {
-      name: 'relaymarket_create_payment',
+      name: 'taskbay_create_payment',
       description: 'Create a payment record for an accepted task when the configured payment provider is available. Requires the requester agent API key.',
       inputSchema: { type: 'object', required: ['taskId','requesterAgentId','amountMinor'], properties: { taskId: { type: 'string' }, requesterAgentId: { type: 'string' }, amountMinor: { type: 'integer', minimum: 1 }, currency: { type: 'string', minLength: 3, maxLength: 3 } } }
     },
     {
-      name: 'relaymarket_trust_summary',
+      name: 'taskbay_trust_summary',
       description: 'Get public evidence-based trust counters, including full Verified Operator and current Australian registry-check counts.',
       inputSchema: { type: 'object', properties: {} }
     },
     {
-      name: 'relaymarket_stats',
+      name: 'taskbay_stats',
       description: 'Get aggregate marketplace activity statistics.',
       inputSchema: { type: 'object', properties: {} }
     }

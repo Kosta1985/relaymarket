@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import { id, now, normalizeAgent, normalizeTask, normalizeMessage, scoreMatch, transitionAllowed, sha256 } from './domain.js';
 import { PLATFORM_FEE_BPS, normalizePayment, paymentTransitionAllowed } from './payments.js';
 
-const DATA_FILE=process.env.RELAYMARKET_DATA_FILE||new URL('../data/market.json',import.meta.url);
+const DATA_FILE=process.env.TASKBAY_DATA_FILE||process.env.RELAYMARKET_DATA_FILE||new URL('../data/market.json',import.meta.url);
 let state={agents:[],tasks:[],events:[],reviews:[],messages:[],payments:[],counters:newCounters(),idempotency:[],credentials:[],verificationChallenges:[]};
 let loaded=false;let writeChain=Promise.resolve();
 
@@ -43,13 +43,13 @@ export async function createMessage(taskId,input,ctx={}){const t=mustTask(taskId
 
 export async function issueCredential(agentId,ctx={}){
   if(!getRawAgent(agentId))throw problem('agent_not_found',404);
-  const keyId=crypto.randomBytes(8).toString('hex'),secret=crypto.randomBytes(24).toString('base64url'),apiKey=`rmk_${keyId}_${secret}`;
+  const keyId=crypto.randomBytes(8).toString('hex'),secret=crypto.randomBytes(24).toString('base64url'),apiKey=`tbk_${keyId}_${secret}`;
   state.credentials.push({id:`cred_${keyId}`,agentId,keyHash:hashSecret(apiKey),createdAt:now(),revokedAt:null,lastUsedAt:null});
   audit('agent.credential_issued',{agentId,credentialId:`cred_${keyId}`,source:ctx.source});count('agent.credential_issued',ctx.source);await persist();
   return {apiKey,credentialId:`cred_${keyId}`,agentId};
 }
 export async function authenticateApiKey(apiKey){
-  if(!apiKey||!String(apiKey).startsWith('rmk_'))return null;const hash=hashSecret(String(apiKey));const c=state.credentials.find(x=>x.keyHash===hash&&!x.revokedAt);if(!c)return null;c.lastUsedAt=now();return c.agentId;
+  if(!apiKey||!/^((tbk)|(rmk))_/.test(String(apiKey)))return null;const hash=hashSecret(String(apiKey));const c=state.credentials.find(x=>x.keyHash===hash&&!x.revokedAt);if(!c)return null;c.lastUsedAt=now();return c.agentId;
 }
 export function listCredentials(agentId){
   if(!getRawAgent(agentId))throw problem('agent_not_found',404);
@@ -68,7 +68,7 @@ export async function rotateCredential(agentId,credentialId,ctx={}){
 export async function createVerificationChallenge(agentId,endpointIndex=0,source='direct'){
   const agent=getRawAgent(agentId);if(!agent)throw problem('agent_not_found',404);const endpoint=agent.endpoints?.[Number(endpointIndex)];if(!endpoint)throw problem('endpoint_not_found',404);
   state.verificationChallenges=state.verificationChallenges.filter(x=>x.agentId!==agentId||x.completedAt);
-  const token=`rm_verify_${crypto.randomBytes(24).toString('base64url')}`,origin=new URL(endpoint.url).origin,challenge={id:id('vfy'),agentId,endpointIndex:Number(endpointIndex),endpointUrl:endpoint.url,verificationUrl:`${origin}/.well-known/relaymarket-verification.txt`,token,createdAt:now(),expiresAt:new Date(Date.now()+15*60_000).toISOString(),completedAt:null};
+  const token=`tb_verify_${crypto.randomBytes(24).toString('base64url')}`,origin=new URL(endpoint.url).origin,challenge={id:id('vfy'),agentId,endpointIndex:Number(endpointIndex),endpointUrl:endpoint.url,verificationUrl:`${origin}/.well-known/taskbay-verification.txt`,token,createdAt:now(),expiresAt:new Date(Date.now()+15*60_000).toISOString(),completedAt:null};
   state.verificationChallenges.push(challenge);audit('agent.verification_challenge_created',{agentId,challengeId:challenge.id,source});count('agent.verification_challenge_created',source);await persist();return structuredClone(challenge);
 }
 export function getVerificationChallenge(agentId,challengeId){return state.verificationChallenges.find(x=>x.agentId===agentId&&x.id===challengeId)||null;}

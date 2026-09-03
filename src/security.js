@@ -3,10 +3,10 @@ import { VERSION } from './domain.js';
 
 const buckets=new Map();
 const WINDOW_MS=60_000;
-const DEFAULT_LIMIT=Number(process.env.RELAYMARKET_RATE_LIMIT||120);
+const DEFAULT_LIMIT=Number(process.env.TASKBAY_RATE_LIMIT||process.env.RELAYMARKET_RATE_LIMIT||120);
 
 export function requestSource(req,url){
-  const raw=req.headers['x-relaymarket-source']||url.searchParams.get('source')||'direct';
+  const raw=req.headers['x-taskbay-source']||req.headers['x-relaymarket-source']||url.searchParams.get('source')||'direct';
   const value=Array.isArray(raw)?raw[0]:raw;
   return String(value||'direct').toLowerCase().replace(/[^a-z0-9_.:-]/g,'').slice(0,80)||'direct';
 }
@@ -48,7 +48,7 @@ export async function verifyOwnershipUrl(url,expectedToken){
   if(!addresses.length||addresses.some(x=>isPrivateAddress(x.address)))throw problem('verification_url_not_public',400);
   const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),5000);
   try{
-    const r=await fetch(u,{method:'GET',redirect:'manual',signal:controller.signal,headers:{'user-agent':`RelayMarket-Ownership-Verifier/${VERSION}`}});
+    const r=await fetch(u,{method:'GET',redirect:'manual',signal:controller.signal,headers:{'user-agent':`TaskBay-Ownership-Verifier/${VERSION}`}});
     if(r.status!==200)throw problem('verification_token_not_found',422);
     const text=(await r.text()).trim();if(text!==expectedToken)throw problem('verification_token_mismatch',422);return true;
   }catch(e){if(e?.code)throw e;throw problem('verification_fetch_failed',422)}finally{clearTimeout(timer)}
