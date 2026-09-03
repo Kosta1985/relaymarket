@@ -32,10 +32,14 @@ async function json(path, init) {
 
 function ok(condition, message) { if (!condition) throw new Error(message); }
 function includes(text, value, label) { ok(text.includes(value), `${label} missing ${value}`); }
+function taskBayOrLegacy(value, current, legacy, label) {
+  if (requireCurrentRelease) ok(value === current, `${label} must be ${current}, got ${value}`);
+  else ok([current, legacy].includes(value), `${label} must be ${current} or migration-compatible ${legacy}, got ${value}`);
+}
 
 const health = await json('/health');
 ok(health.r.status === 200, `/health status ${health.r.status}`);
-ok(health.body.service === 'taskbay', `/health service must be taskbay, got ${health.body.service}`);
+taskBayOrLegacy(health.body.service, 'taskbay', 'relaymarket', '/health service');
 ok(health.body.version === pkg.version, `/health version ${health.body.version} != ${pkg.version}`);
 
 const homeResponse = await request('/');
@@ -67,15 +71,15 @@ includes(sitemap, `<loc>${origin}/</loc>`, 'sitemap');
 for (const cardPath of ['/.well-known/agent-card.json', '/.well-known/agent.json']) {
   const card = await json(cardPath);
   ok(card.r.status === 200, `${cardPath} status ${card.r.status}`);
-  ok(card.body.name === 'TaskBay', `${cardPath} returned ${card.body.name}, expected TaskBay`);
+  taskBayOrLegacy(card.body.name, 'TaskBay', 'RelayMarket', `${cardPath} name`);
   ok(card.body.protocolVersion === '0.3.0', `${cardPath} advertises unexpected A2A version`);
   ok(card.body.url === `${origin}/a2a`, `${cardPath} A2A URL mismatch`);
 }
 
+const mcpDiscovery = await json('/.well-known/mcp.json');
+ok(mcpDiscovery.r.status === 200, `/.well-known/mcp.json status ${mcpDiscovery.r.status}`);
+taskBayOrLegacy(mcpDiscovery.body.name, 'TaskBay', 'RelayMarket', '/.well-known/mcp.json name');
 if (requireCurrentRelease) {
-  const mcpDiscovery = await json('/.well-known/mcp.json');
-  ok(mcpDiscovery.r.status === 200, `/.well-known/mcp.json status ${mcpDiscovery.r.status}`);
-  ok(mcpDiscovery.body.name === 'TaskBay', `/.well-known/mcp.json returned ${mcpDiscovery.body.name}, expected TaskBay`);
   ok(mcpDiscovery.body.version === pkg.version, `/.well-known/mcp.json version ${mcpDiscovery.body.version} != ${pkg.version}`);
   ok(mcpDiscovery.body.transport === 'streamable-http', '/.well-known/mcp.json transport mismatch');
   ok(mcpDiscovery.body.endpoint === `${origin}/mcp`, '/.well-known/mcp.json MCP endpoint mismatch');
@@ -85,7 +89,7 @@ if (requireCurrentRelease) {
 
 const openapi = await json('/openapi.json');
 ok(openapi.r.status === 200, `/openapi.json status ${openapi.r.status}`);
-ok(openapi.body.info?.title === 'TaskBay API', `OpenAPI title mismatch: ${openapi.body.info?.title}`);
+if (requireCurrentRelease) ok(openapi.body.info?.title === 'TaskBay API', `OpenAPI title mismatch: ${openapi.body.info?.title}`);
 ok(openapi.body.info?.version === pkg.version, 'OpenAPI version mismatch');
 for (const path of ['/api/v1/tasks/{id}/accept','/api/v1/tasks/{id}/deliver','/api/v1/tasks/{id}/complete','/api/v1/agents/{id}/credentials/{credentialId}/rotate','/api/v1/tasks/{id}/payment','/api/v1/tasks/{id}/protection','/api/v1/payments/config','/api/v1/payments/quote','/api/v1/payments/stats','/api/v1/agents/{id}/payout/stripe/onboard','/api/v1/payments/{paymentId}/release','/api/v1/payments/{paymentId}/refund','/api/v1/trust/summary','/api/v1/agents/{id}/trust','/api/v1/agents/{id}/trust/business-verification']) {
   ok(openapi.body.paths?.[path], `OpenAPI missing ${path}`);
@@ -113,7 +117,7 @@ ok(Number.isInteger(trustSummary.body.trust?.verifiedOperators), 'Trust summary 
 const server = await json('/server.json');
 ok(server.r.status === 200, `/server.json status ${server.r.status}`);
 ok(server.body.name === 'io.github.Kosta1985/relaymarket', 'MCP Registry compatibility identity mismatch');
-ok(server.body.title === 'TaskBay', 'MCP Registry metadata title must be TaskBay');
+if (requireCurrentRelease) ok(server.body.title === 'TaskBay', 'MCP Registry metadata title must be TaskBay');
 ok(server.body.version === pkg.version, 'server.json version mismatch');
 ok(server.body.remotes?.[0]?.url === `${origin}/mcp`, 'server.json MCP URL mismatch');
 
@@ -121,14 +125,17 @@ const mcpGet = await request('/mcp');
 ok(mcpGet.status === 405, `GET /mcp expected 405, got ${mcpGet.status}`);
 const initialize = await json('/mcp', { method: 'POST', headers: { 'content-type': 'application/json', 'x-taskbay-source': 'postdeploy-check' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }) });
 ok(initialize.r.status === 200, `MCP initialize status ${initialize.r.status}`);
-ok(initialize.body.result?.serverInfo?.name === 'taskbay', `MCP initialize server name mismatch: ${initialize.body.result?.serverInfo?.name}`);
+taskBayOrLegacy(initialize.body.result?.serverInfo?.name, 'taskbay', 'relaymarket', 'MCP initialize server name');
 ok(initialize.body.result?.serverInfo?.version === pkg.version, 'MCP initialize version mismatch');
 const tools = await json('/mcp', { method: 'POST', headers: { 'content-type': 'application/json', 'x-taskbay-source': 'postdeploy-check' }, body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} }) });
-for (const tool of ['taskbay_discover_agents','taskbay_publish_task','taskbay_accept_task','taskbay_deliver_task','taskbay_complete_task','taskbay_payment_quote','taskbay_create_payment','taskbay_trust_summary','taskbay_get_protection_case','taskbay_add_protection_evidence']) {
-  ok(tools.body.result?.tools?.some(x => x.name === tool), `MCP tools/list missing ${tool}`);
+const currentTools = ['taskbay_discover_agents','taskbay_publish_task','taskbay_accept_task','taskbay_deliver_task','taskbay_complete_task','taskbay_payment_quote','taskbay_create_payment','taskbay_trust_summary','taskbay_get_protection_case','taskbay_add_protection_evidence'];
+const legacyTools = currentTools.map(name => name.replace(/^taskbay_/, 'relaymarket_'));
+for (let i = 0; i < currentTools.length; i++) {
+  const names = requireCurrentRelease ? [currentTools[i]] : [currentTools[i], legacyTools[i]];
+  ok(tools.body.result?.tools?.some(x => names.includes(x.name)), `MCP tools/list missing ${names.join(' or ')}`);
 }
 
-// Compatibility contract: legacy MCP tool IDs remain accepted during migration even though they are no longer advertised.
+// Compatibility contract: legacy MCP tool IDs remain accepted during migration even though they are no longer advertised by the current release.
 const legacyTool = await json('/mcp', { method: 'POST', headers: { 'content-type': 'application/json', 'x-taskbay-source': 'postdeploy-legacy-check' }, body: JSON.stringify({ jsonrpc: '2.0', id: 22, method: 'tools/call', params: { name: 'relaymarket_stats', arguments: {} } }) });
 ok(legacyTool.r.status === 200, `legacy MCP alias returned HTTP ${legacyTool.r.status}`);
 ok(legacyTool.body.result, 'legacy MCP alias relaymarket_stats is no longer accepted');
@@ -143,4 +150,4 @@ ok(llmsResponse.status === 200, `/llms.txt status ${llmsResponse.status}`);
 const llms = await llmsResponse.text();
 for (const path of ['/mcp','/a2a','/openapi.json','/api/v1/stats','/api/v1/payments/quote','/api/v1/payments/stats']) includes(llms, `${origin}${path}`, 'llms.txt');
 
-console.log(`TaskBay ${pkg.version} public discovery black-box checks passed for ${origin}${requireCurrentRelease ? ' (current release required)' : ''}`);
+console.log(`TaskBay ${pkg.version} public discovery black-box checks passed for ${origin}${requireCurrentRelease ? ' (current release required)' : ' (migration-compatible smoke)'}`);
