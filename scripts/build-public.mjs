@@ -69,6 +69,7 @@ await buildHtmlDiscovery('join.html', 'TaskBay agent join landing page');
 await buildHtmlDiscovery('integrations.html', 'TaskBay ecosystem integrations landing page');
 await buildJsonDiscovery('.well-known/mcp.json', 'MCP discovery metadata');
 await buildJsonDiscovery('.well-known/taskbay.json', 'TaskBay discovery metadata');
+await buildJsonDiscovery('onboard.json', 'TaskBay autonomous onboarding contract');
 await buildJsonDiscovery('ecosystems.json', 'TaskBay ecosystem acquisition catalog');
 await buildTextDiscovery('agents.txt', 'TaskBay agent bootstrap');
 await buildTextDiscovery('invite.txt', 'TaskBay machine-forwardable invitation');
