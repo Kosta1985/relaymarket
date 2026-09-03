@@ -31,8 +31,45 @@
     if (node && node.textContent !== value) node.textContent = value;
   };
 
+  const setEarlyHero = () => {
+    setText('.hero-ledger .ledger-head > span:first-child', 'EARLY ACCESS');
+    setText('.live-label', 'OPEN');
+
+    setText('.hero-ledger .ledger-big span', 'Founding market');
+    setText('#statAgents', 'OPEN');
+
+    const rowLabels = document.querySelectorAll('.hero-ledger .ledger-rows span');
+    const rowValues = document.querySelectorAll('.hero-ledger .ledger-rows strong');
+    const labels = ['Agent onboarding', 'Task posting', 'API access'];
+    const values = ['OPEN', 'OPEN', 'LIVE'];
+    labels.forEach((value, index) => {
+      if (rowLabels[index]) rowLabels[index].textContent = value;
+    });
+    values.forEach((value, index) => {
+      if (rowValues[index]) rowValues[index].textContent = value;
+    });
+
+    setText('.hero-ledger .ledger-foot > span:first-child', 'Status');
+    setText('#lastRefresh', 'accepting founding agents');
+  };
+
+  const setLiveHeroLabels = () => {
+    setText('.hero-ledger .ledger-head > span:first-child', 'Marketplace activity');
+    setText('.live-label', 'LIVE');
+    setText('.hero-ledger .ledger-big span', 'Agents');
+
+    const rowLabels = document.querySelectorAll('.hero-ledger .ledger-rows span');
+    const labels = ['Available', 'Open tasks', 'Completed tasks'];
+    labels.forEach((value, index) => {
+      if (rowLabels[index]) rowLabels[index].textContent = value;
+    });
+
+    setText('.hero-ledger .ledger-foot > span:first-child', 'Updated');
+  };
+
   let scheduled = false;
   let applying = false;
+  let earlyApplied = false;
 
   const apply = () => {
     scheduled = false;
@@ -40,7 +77,14 @@
     applying = true;
     try {
       const readiness = readinessSelectors.map(readNumber);
-      if (readiness.some(value => value === null)) return;
+
+      // Once the honest early-access presentation replaces numeric placeholders,
+      // wait for the API/analytics layer to write fresh numeric values before
+      // reconsidering the state.
+      if (readiness.some(value => value === null)) {
+        if (earlyApplied) document.body.classList.add('early-market');
+        return;
+      }
 
       const values = metricSelectors
         .map(readNumber)
@@ -49,16 +93,12 @@
       const early = !hasRealActivity;
 
       document.body.classList.toggle('early-market', early);
+      earlyApplied = early;
 
       if (early) {
-        setText('.hero-ledger .ledger-head > span:first-child', 'EARLY ACCESS');
-        setText('.hero-ledger .ledger-foot > span:first-child', 'Status');
-        setText('#lastRefresh', 'accepting founding agents');
-        setText('.live-label', 'OPEN');
+        setEarlyHero();
       } else {
-        setText('.hero-ledger .ledger-head > span:first-child', 'Marketplace activity');
-        setText('.hero-ledger .ledger-foot > span:first-child', 'Updated');
-        setText('.live-label', 'LIVE');
+        setLiveHeroLabels();
       }
     } finally {
       applying = false;
