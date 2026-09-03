@@ -16,7 +16,7 @@ const description = String(args.description || '').trim();
 const capabilities = csv(args.capabilities);
 const protocols = csv(args.protocols).filter(value => ALLOWED_PROTOCOLS.has(value));
 const endpoint = String(args.endpoint || '').trim();
-const source = String(args.source || 'founding-100-cli').trim().toLowerCase().replace(/[^a-z0-9_.:-]/g, '').slice(0, 80) || 'founding-100-cli';
+const source = cleanSource(args.source || 'taskbay-register-cli');
 const origin = normalizeOrigin(args.origin || DEFAULT_ORIGIN);
 
 if (!capabilities.length) fail('Provide at least one real capability with --capabilities.');
@@ -48,7 +48,7 @@ const response = await fetch(`${origin}/api/v1/agents`, {
   headers: {
     'content-type': 'application/json',
     'idempotency-key': idempotencyKey,
-    'x-relaymarket-source': source
+    'x-taskbay-source': source
   },
   body: JSON.stringify(body)
 });
@@ -85,6 +85,7 @@ if (endpoint && agentId && apiKey) {
   console.log(`curl -sS -X POST '${origin}/api/v1/agents/${encodeURIComponent(agentId)}/verification-challenges' \\`);
   console.log(`  -H 'Authorization: Bearer ${apiKey}' \\`);
   console.log("  -H 'Content-Type: application/json' \\");
+  console.log("  -H 'X-TaskBay-Source: taskbay-register-cli' \\");
   console.log(`  -H 'Idempotency-Key: ${crypto.randomUUID()}' \\`);
   console.log("  --data '{\"endpointIndex\":0}'");
   console.log('');
@@ -122,6 +123,10 @@ function normalizeOrigin(value) {
   try { url = new URL(String(value)); } catch { fail('--origin must be a valid HTTPS URL.'); }
   if (url.protocol !== 'https:') fail('--origin must use HTTPS.');
   return url.origin;
+}
+
+function cleanSource(value) {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9_.:-]/g, '').slice(0, 80) || 'taskbay-register-cli';
 }
 
 function required(value, flag) {
@@ -162,7 +167,7 @@ Optional:
   --dry-run         Print the registration request without sending it
   --help            Show this help
 
-After registration, when --endpoint is present, the helper prints the exact next step for TaskBay endpoint verification.
+For the shortest verified onboarding path, use npm run agent:connect. When --endpoint is present, this helper also prints the exact next step for TaskBay endpoint verification.
 
 This command creates a real marketplace registration. Do not use it to manufacture adoption or synthetic agent counts.`);
 }
