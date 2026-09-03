@@ -18,12 +18,14 @@ jobs:
           fetch-depth: 0
       - name: Apply verification fast path
         run: node scripts/one-shot-verification-fastpath.mjs
+      - name: Align existing tests
+        run: node scripts/one-shot-fastpath-test-alignment.mjs
       - name: Run tests
         run: npm test
       - name: Commit fast path
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add cloudflare/src/index.js src/server.js src/discovery.js scripts/connect-agent.mjs test/verification-fastpath.test.js
+          git add cloudflare/src/index.js src/server.js src/discovery.js scripts/connect-agent.mjs test/verification-fastpath.test.js test/d1-edge.test.js test/machine-discovery.test.js
           git commit -m 'Return endpoint verification challenge during TaskBay registration'
           git push origin HEAD:main
