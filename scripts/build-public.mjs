@@ -2,7 +2,7 @@ import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const originInput = String(process.env.PUBLIC_ORIGIN || '').trim();
-if (!originInput) throw new Error('PUBLIC_ORIGIN is required, e.g. https://relaymarket.example');
+if (!originInput) throw new Error('PUBLIC_ORIGIN is required, e.g. https://taskbay.example');
 const parsed = new URL(originInput);
 if (parsed.protocol !== 'https:') throw new Error('PUBLIC_ORIGIN must use https');
 if (parsed.pathname !== '/' || parsed.search || parsed.hash) throw new Error('PUBLIC_ORIGIN must be an origin without path, query, or hash');
@@ -25,6 +25,9 @@ if (!html.includes('href="/mobile.css"')) {
 if (!html.includes('href="/header-clean.css"')) {
   html = html.replace('<link rel="stylesheet" href="/styles.css">', '<link rel="stylesheet" href="/styles.css">\n  <link rel="stylesheet" href="/header-clean.css">');
 }
+if (!html.includes('href="/early-access.css"')) {
+  html = html.replace('<link rel="stylesheet" href="/header-clean.css">', '<link rel="stylesheet" href="/header-clean.css">\n  <link rel="stylesheet" href="/early-access.css">');
+}
 if (!html.includes('src="/analytics-bridge.js"')) {
   html = html.replace('<script type="module" src="/app.js"></script>', '<script src="/analytics-bridge.js"></script>\n  <script type="module" src="/app.js"></script>');
 }
@@ -45,6 +48,7 @@ if (googleToken) {
 if (/__PUBLIC_ORIGIN__|__GOOGLE_SITE_VERIFICATION__/.test(html)) throw new Error('Unresolved deployment placeholder remains in built HTML');
 if (!html.includes('href="/mobile.css"')) throw new Error('TaskBay mobile hardening stylesheet was not linked into built HTML');
 if (!html.includes('href="/header-clean.css"')) throw new Error('TaskBay professional visual stylesheet was not linked into built HTML');
+if (!html.includes('href="/early-access.css"')) throw new Error('TaskBay early-access stylesheet was not linked into built HTML');
 if (!html.includes('src="/public-cleanup.js"')) throw new Error('TaskBay legacy-brand cleanup was not linked into built HTML');
 if (!html.includes('src="/site-copy.js"')) throw new Error('TaskBay simplified product copy was not linked into built HTML');
 if (!html.includes('src="/market-state.js"')) throw new Error('TaskBay early-access market state was not linked into built HTML');
