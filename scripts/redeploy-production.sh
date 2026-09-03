@@ -3,8 +3,8 @@ set -euo pipefail
 
 ORIGIN="https://relaymarket.notary-labs.workers.dev"
 
-if [[ ! -f package.json ]] || ! grep -q '"name": "relaymarket"' package.json; then
-  echo "Refusing: run from RelayMarket repository root." >&2
+if [[ ! -f package.json ]] || ! grep -q '"name": "taskbay"' package.json; then
+  echo "Refusing: run from TaskBay repository root (compatibility repository: relaymarket)." >&2
   exit 2
 fi
 
@@ -22,4 +22,4 @@ npx wrangler@4.127.1 d1 migrations list relaymarket --remote
 PUBLIC_ORIGIN="$ORIGIN" npx wrangler@4.127.1 deploy
 TARGET_ORIGIN="$ORIGIN" npm run production:verify
 
-echo "RelayMarket production refresh passed: $ORIGIN"
+echo "TaskBay production refresh passed on compatibility origin: $ORIGIN"
