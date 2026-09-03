@@ -7,29 +7,35 @@ const required = [
   '.github/workflows/codeql.yml','.github/workflows/production-smoke.yml','docs/SECURITY.md',
   'docs/TRUST-SAFETY-AU.md','docs/PAYMENTS.md','docs/DISCOVERY.md','docs/DEPLOYMENT.md','docs/STATUS.md',
   'docs/BRAND-MIGRATION.md','public/robots.txt','public/sitemap.xml','public/llms.txt','public/llms-full.txt',
+  'public/invite.txt','public/join.html','public/.well-known/taskbay.json',
   '.github/workflows/mcp-registry-validate.yml','.github/workflows/mcp-registry-publish.yml','.github/workflows/a2a-registry-submit.yml'
 ];
 for (const file of required) await readFile(file, 'utf8');
 
-// Public product branding can move independently of already-published machine
-// identities. During the controlled TaskBay migration the npm/project name is
-// TaskBay, while the existing MCP Registry identity and production origin stay
-// stable so installed agents and directory links do not break.
 if (pkg.name !== 'taskbay') throw new Error('package name is not taskbay');
 if (pkg.mcpName !== 'io.github.Kosta1985/relaymarket') throw new Error('unexpected MCP Registry compatibility name');
 
-// Guard the exact class of rebrand regression that previously blocked the
-// production deployment script: the product name is TaskBay while the Worker,
-// D1 database and public compatibility origin intentionally remain RelayMarket.
 const redeploy = await readFile('scripts/redeploy-production.sh', 'utf8');
 if (!redeploy.includes('"name": "taskbay"')) throw new Error('production deploy guard is not TaskBay-aware');
 if (!redeploy.includes('https://relaymarket.notary-labs.workers.dev')) throw new Error('production compatibility origin missing from deploy script');
 if (!redeploy.includes('d1 migrations list relaymarket --remote')) throw new Error('production D1 compatibility target changed unexpectedly');
 
 const buildPublic = await readFile('scripts/build-public.mjs', 'utf8');
-for (const discoveryFile of ['robots.txt', 'sitemap.xml', 'llms.txt', 'llms-full.txt', '.well-known/taskbay.json', 'agents.txt']) {
+for (const discoveryFile of ['robots.txt', 'sitemap.xml', 'llms.txt', 'llms-full.txt', '.well-known/taskbay.json', 'agents.txt', 'invite.txt', 'join.html']) {
   if (!buildPublic.includes(discoveryFile)) throw new Error(`public build does not process ${discoveryFile}`);
 }
+
+const invite = await readFile('public/invite.txt', 'utf8');
+if (!invite.includes('agent-invite')) throw new Error('agent invite source attribution is missing');
+if (!invite.includes('__PUBLIC_ORIGIN__/join.html?source=agent-invite')) throw new Error('agent invite does not point to the attributed join page');
+
+const join = await readFile('public/join.html', 'utf8');
+if (!join.includes('?source=agent-invite')) throw new Error('join page does not preserve agent-invite attribution');
+if (!join.includes('TaskBay')) throw new Error('join page is not TaskBay branded');
+
+const manifest = JSON.parse(await readFile('public/.well-known/taskbay.json', 'utf8'));
+if (!String(manifest.entrypoints?.agentJoin || '').includes('source=agent-invite')) throw new Error('TaskBay manifest is missing attributed agent join entrypoint');
+if (!String(manifest.entrypoints?.agentInvite || '').endsWith('/invite.txt')) throw new Error('TaskBay manifest is missing machine invite entrypoint');
 
 const textFiles = [];
 async function walk(dir) {
@@ -41,8 +47,6 @@ async function walk(dir) {
   }
 }
 await walk('.');
-// AccordTrace is TaskBay's approved evidence layer and may be linked from the
-// product surface. The other names remain unrelated project brands.
 const forbiddenBrands = /\b(?:Notary\s*Protocol|Credalyx|Lendossier)\b/i;
 const secretPatterns = [
   /sk_live_[A-Za-z0-9]{16,}/,
