@@ -16,6 +16,6 @@ jobs:
       - name: Synthetic 20-agent counters
         run: npm run test:synthetic
       - run: PUBLIC_ORIGIN=https://taskbay.example npm run build:public
-      - run: test ! -n "$(grep -R -E '__PUBLIC_ORIGIN__|__GOOGLE_SITE_VERIFICATION__|__RELAYMARKET_VERSION__' dist || true)"
+      - run: test ! -n "$(grep -R -E '__PUBLIC_ORIGIN__|__GOOGLE_SITE_VERIFICATION__|__TASKBAY_VERSION__|__RELAYMARKET_VERSION__' dist || true)"
       - run: npm run smoke
       - run: npm run release:check
