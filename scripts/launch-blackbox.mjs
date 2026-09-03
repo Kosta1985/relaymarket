@@ -50,13 +50,14 @@ async function json(path, init = {}) {
 
 const health = await json('/health');
 assert(health.body.status === 'ok', '/health status field is not ok');
-assert(health.body.service === 'relaymarket', '/health compatibility service changed unexpectedly');
+assert(health.body.service === 'taskbay', `/health service must be taskbay, got ${health.body.service}`);
 assert(health.body.version === pkg.version, `/health version ${health.body.version} != ${pkg.version}`);
 
 const home = await text('/');
-assert(home.body.includes('<title>TaskBay — Work moves between agents</title>'), 'TaskBay page title is not live');
+assert(/<title>TaskBay\b/i.test(home.body), 'TaskBay page title is not live');
 assert(home.body.includes('/mobile.css'), 'TaskBay mobile hardening stylesheet is not linked');
 assert(home.body.includes('TaskBay'), 'TaskBay brand missing from homepage');
+assert(!home.body.includes('<span class="brand-word">RelayMarket</span>'), 'legacy RelayMarket header brand is still live');
 assert(!home.body.includes('__PUBLIC_ORIGIN__'), 'homepage contains unresolved PUBLIC_ORIGIN placeholder');
 
 const mobile = await text('/mobile.css');
@@ -68,6 +69,8 @@ assert(manifest.body.name === 'TaskBay', 'TaskBay manifest name mismatch');
 assert(manifest.body.version === pkg.version, 'TaskBay manifest version mismatch');
 assert(manifest.body.serviceOrigin === origin, 'TaskBay manifest serviceOrigin mismatch');
 assert(manifest.body.registryIdentity === 'io.github.Kosta1985/relaymarket', 'TaskBay manifest registry compatibility identity mismatch');
+assert(manifest.body.requestGuidance?.sourceHeader === 'X-TaskBay-Source', 'TaskBay manifest source header mismatch');
+assert(manifest.body.requestGuidance?.legacySourceHeader === 'X-RelayMarket-Source', 'TaskBay manifest legacy source header compatibility declaration missing');
 assert(manifest.body.commercialStatus?.productionPaymentCapture === 'disabled', 'TaskBay manifest must advertise production payment capture as disabled');
 for (const action of ['rank_matches', 'select_provider', 'accept_task', 'start_task', 'deliver_artifact', 'request_revision', 'complete_task']) {
   assert(manifest.body.supportedActions?.includes(action), `TaskBay manifest missing supported action ${action}`);
@@ -79,18 +82,20 @@ for (const expected of [
   `${origin}/.well-known/taskbay.json`,
   `${origin}/api/v1/tasks/{taskId}/select`,
   `${origin}/api/v1/tasks/{taskId}/revise`,
+  'X-TaskBay-Source',
   'Production payment capture is currently disabled'
 ]) assert(agentBootstrap.body.includes(expected), `agents.txt missing ${expected}`);
 assert(!agentBootstrap.body.includes('__PUBLIC_ORIGIN__'), 'agents.txt contains unresolved PUBLIC_ORIGIN placeholder');
 
 const mcpDiscovery = await json('/.well-known/mcp.json');
-assert(['TaskBay', 'RelayMarket'].includes(mcpDiscovery.body.name), 'MCP discovery display name mismatch');
+assert(mcpDiscovery.body.name === 'TaskBay', `MCP discovery display name must be TaskBay, got ${mcpDiscovery.body.name}`);
 assert(mcpDiscovery.body.version === pkg.version, 'MCP discovery version mismatch');
 assert(mcpDiscovery.body.endpoint === `${origin}/mcp`, 'MCP discovery endpoint mismatch');
 assert(mcpDiscovery.body.officialRegistryName === 'io.github.Kosta1985/relaymarket', 'MCP registry identity mismatch');
 assert(mcpDiscovery.body.paymentsEnabled === false, 'MCP discovery must report paymentsEnabled=false');
 
 const openapi = await json('/openapi.json');
+assert(openapi.body.info?.title === 'TaskBay API', `OpenAPI title must be TaskBay API, got ${openapi.body.info?.title}`);
 assert(openapi.body.info?.version === pkg.version, 'OpenAPI version mismatch');
 for (const path of [
   '/api/v1/tasks/{id}/matches',
@@ -126,7 +131,25 @@ assert(payments.body.platformFeePercent === 1, 'planned TaskBay platform fee mus
 
 const server = await json('/server.json');
 assert(server.body.name === 'io.github.Kosta1985/relaymarket', 'server.json compatibility identity changed');
+assert(server.body.title === 'TaskBay', 'server.json title must be TaskBay');
 assert(server.body.version === pkg.version, 'server.json version mismatch');
 assert(server.body.remotes?.[0]?.url === `${origin}/mcp`, 'server.json MCP remote mismatch');
+
+const initialize = await json('/mcp', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json', 'x-taskbay-source': 'launch-blackbox' },
+  body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} })
+});
+assert(initialize.body.result?.serverInfo?.name === 'taskbay', `MCP serverInfo.name must be taskbay, got ${initialize.body.result?.serverInfo?.name}`);
+assert(initialize.body.result?.serverInfo?.version === pkg.version, 'MCP serverInfo.version mismatch');
+
+const tools = await json('/mcp', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json', 'x-taskbay-source': 'launch-blackbox' },
+  body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} })
+});
+for (const name of ['taskbay_discover_agents','taskbay_publish_task','taskbay_accept_task','taskbay_deliver_task','taskbay_complete_task','taskbay_stats']) {
+  assert(tools.body.result?.tools?.some(tool => tool.name === name), `MCP tools/list missing ${name}`);
+}
 
 console.log(`TaskBay ${pkg.version} launch black-box checks passed for ${origin}`);
