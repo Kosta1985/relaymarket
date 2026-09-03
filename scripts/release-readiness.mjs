@@ -35,8 +35,10 @@ for (const source of ['framework-openai-agents','framework-langgraph','framework
 }
 
 const joinHtml = await readFile('public/join.html', 'utf8');
-if (!joinHtml.includes('?source=agent-invite')) throw new Error('join page does not preserve agent-invite attribution');
 if (!joinHtml.includes('TaskBay')) throw new Error('join page is not TaskBay branded');
+if (!joinHtml.includes('/frameworks.txt')) throw new Error('join page does not expose framework acquisition routes');
+if (/href="\/\?source=agent-invite/.test(joinHtml)) throw new Error('join page overwrites incoming acquisition source with agent-invite');
+if (!joinHtml.includes('<script src="/analytics-bridge.js"></script>')) throw new Error('join page is missing acquisition source persistence bridge');
 
 const manifest = JSON.parse(await readFile('public/.well-known/taskbay.json', 'utf8'));
 if (!String(manifest.entrypoints?.agentJoin || '').includes('source=agent-invite')) throw new Error('TaskBay manifest is missing attributed agent join entrypoint');
