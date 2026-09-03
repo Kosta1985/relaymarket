@@ -12,7 +12,7 @@ if (args.help) {
 
 const agentId = required(args.agentId, '--agent-id');
 const apiKey = String(args.apiKey || process.env.TASKBAY_API_KEY || '').trim();
-const source = cleanSource(args.source || 'founding-100-verify');
+const source = cleanSource(args.source || 'taskbay-verify-cli');
 const origin = normalizeOrigin(args.origin || DEFAULT_ORIGIN);
 const challengeId = String(args.challengeId || '').trim();
 const endpointIndex = parseEndpointIndex(args.endpointIndex);
@@ -85,7 +85,7 @@ function authHeaders() {
     authorization: `Bearer ${apiKey}`,
     'content-type': 'application/json',
     'idempotency-key': crypto.randomUUID(),
-    'x-relaymarket-source': source
+    'x-taskbay-source': source
   };
 }
 
@@ -129,7 +129,7 @@ function normalizeOrigin(value) {
 }
 
 function cleanSource(value) {
-  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9_.:-]/g, '').slice(0, 80) || 'founding-100-verify';
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9_.:-]/g, '').slice(0, 80) || 'taskbay-verify-cli';
 }
 
 function required(value, flag) {
