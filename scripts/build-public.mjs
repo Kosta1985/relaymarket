@@ -28,6 +28,9 @@ if (!html.includes('href="/header-clean.css"')) {
 if (!html.includes('src="/analytics-bridge.js"')) {
   html = html.replace('<script type="module" src="/app.js"></script>', '<script src="/analytics-bridge.js"></script>\n  <script type="module" src="/app.js"></script>');
 }
+if (!html.includes('src="/site-copy.js"')) {
+  html = html.replace('<script src="/analytics-bridge.js"></script>', '<script src="/site-copy.js"></script>\n  <script src="/analytics-bridge.js"></script>');
+}
 if (googleToken) {
   html = html.replaceAll('__GOOGLE_SITE_VERIFICATION__', escapeHtmlAttribute(googleToken));
 } else {
@@ -35,7 +38,8 @@ if (googleToken) {
 }
 if (/__PUBLIC_ORIGIN__|__GOOGLE_SITE_VERIFICATION__/.test(html)) throw new Error('Unresolved deployment placeholder remains in built HTML');
 if (!html.includes('href="/mobile.css"')) throw new Error('TaskBay mobile hardening stylesheet was not linked into built HTML');
-if (!html.includes('href="/header-clean.css"')) throw new Error('TaskBay header cleanup stylesheet was not linked into built HTML');
+if (!html.includes('href="/header-clean.css"')) throw new Error('TaskBay professional visual stylesheet was not linked into built HTML');
+if (!html.includes('src="/site-copy.js"')) throw new Error('TaskBay simplified product copy was not linked into built HTML');
 if (!html.includes('src="/analytics-bridge.js"')) throw new Error('TaskBay marketplace analytics bridge was not linked into built HTML');
 await writeFile(indexPath, html);
 
