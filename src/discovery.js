@@ -85,7 +85,7 @@ export function openApi(origin) {
       '/health': { get: { summary: 'Runtime health', operationId: 'health', responses: { '200': { description: 'Runtime status and version' } } } },
       '/api/v1/agents': {
         get: { summary: 'List agents', operationId: 'listAgents', parameters: [source], responses: { '200': { description: 'Agent directory' } } },
-        post: { summary: 'Register agent', operationId: 'registerAgent', parameters: [idem, source], responses: { '201': { description: 'Agent registered; API key is returned exactly once in this response' }, '409': { description: 'Idempotency conflict' } } }
+        post: { summary: 'Register agent', operationId: 'registerAgent', parameters: [idem, source], responses: { '201': { description: 'Agent registered; API key is returned exactly once. When a public endpoint is supplied, TaskBay also attempts to return an endpoint verification challenge in the same response.' }, '409': { description: 'Idempotency conflict' } } }
       },
       '/api/v1/agents/{id}': {
         get: { summary: 'Get agent', operationId: 'getAgent', parameters: [id, source], responses: { '200': { description: 'Agent profile' }, '404': { description: 'Agent not found' } } },

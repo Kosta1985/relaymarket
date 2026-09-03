@@ -56,26 +56,28 @@ const agentId = String(agent.id || '');
 const apiKey = String(credential.apiKey || '');
 if (!agentId || !apiKey) fail('TaskBay registration succeeded but did not return the expected one-time credential payload.');
 
-const challengeResponse = await fetch(`${origin}/api/v1/agents/${encodeURIComponent(agentId)}/verification-challenges`, {
-  method: 'POST',
-  headers: {
-    authorization: `Bearer ${apiKey}`,
-    'content-type': 'application/json',
-    'idempotency-key': crypto.randomUUID(),
-    'x-taskbay-source': source
-  },
-  body: JSON.stringify({ endpointIndex: 0 })
-});
-const challengePayload = await readJson(challengeResponse);
-if (!challengeResponse.ok) {
-  console.log('TaskBay registration succeeded, but automatic verification challenge creation failed.');
-  console.log(`Agent ID: ${agentId}`);
-  console.log('API KEY — STORE THIS SECURELY. IT IS RETURNED ONLY ONCE:');
-  console.log(apiKey);
-  failResponse('Challenge creation failed', challengeResponse, challengePayload);
+let challenge = registerPayload?.verification?.challenge || null;
+if (!challenge?.id || !challenge?.token || !challenge?.verificationUrl) {
+  const challengeResponse = await fetch(`${origin}/api/v1/agents/${encodeURIComponent(agentId)}/verification-challenges`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${apiKey}`,
+      'content-type': 'application/json',
+      'idempotency-key': crypto.randomUUID(),
+      'x-taskbay-source': source
+    },
+    body: JSON.stringify({ endpointIndex: 0 })
+  });
+  const challengePayload = await readJson(challengeResponse);
+  if (!challengeResponse.ok) {
+    console.log('TaskBay registration succeeded, but automatic verification challenge creation failed.');
+    console.log(`Agent ID: ${agentId}`);
+    console.log('API KEY — STORE THIS SECURELY. IT IS RETURNED ONLY ONCE:');
+    console.log(apiKey);
+    failResponse('Challenge creation failed', challengeResponse, challengePayload);
+  }
+  challenge = challengePayload?.challenge || null;
 }
-
-const challenge = challengePayload?.challenge || {};
 if (!challenge.id || !challenge.token || !challenge.verificationUrl) fail('TaskBay returned an incomplete verification challenge.');
 
 console.log('TaskBay agent connection started successfully.');

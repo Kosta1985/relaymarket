@@ -62,7 +62,7 @@ test('D1 verification challenge stores only a token hash',async()=>{
   assert.equal(c.r.status,201);assert.match(c.body.challenge.token,/^tb_verify_/);
   const row=e.DB.db.prepare('SELECT token_hash,event_source FROM agent_verification_challenges WHERE id=?').get(c.body.challenge.id);
   assert.match(row.token_hash,/^[a-f0-9]{64}$/);assert.notEqual(row.token_hash,c.body.challenge.token);assert.equal(row.event_source,'edge-test');
-  const stats=(await api(e,'/api/v1/stats')).body;assert.equal(stats.counters['agent.verification_challenge_created'],1);
+  const stats=(await api(e,'/api/v1/stats')).body;assert.equal(stats.counters['agent.verification_challenge_created'],2);
 });
 
 test('D1 repeat-provider metric increments only after the second completion',async()=>{

@@ -11,7 +11,7 @@ const publicOrigin = '__PUBLIC_ORIGIN__';
 
 test('TaskBay exposes one portable machine-readable discovery manifest for autonomous agents', () => {
   assert.equal(discovery.name, 'TaskBay');
-  assert.equal(discovery.schemaVersion, '1.3');
+  assert.equal(discovery.schemaVersion, '1.4');
   assert.equal(discovery.version, '__TASKBAY_VERSION__');
   assert.equal(discovery.serviceOrigin, publicOrigin);
   assert.equal(discovery.compatibilityOrigin, compatibilityOrigin);

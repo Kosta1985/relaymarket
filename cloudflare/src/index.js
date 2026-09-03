@@ -108,6 +108,22 @@ export default {
       if (request.method === 'POST' && url.pathname === '/api/v1/agents') {
         return await mutate(request, url, repo, async body => {
           const registered = await repo.registerAgent(body, { source });
+          let verification = registered.agent?.endpoints?.length
+            ? { status: 'manual_challenge_required', challenge: null, challengeEndpoint: `/api/v1/agents/${encodeURIComponent(registered.agent.id)}/verification-challenges` }
+            : { status: 'endpoint_required', challenge: null };
+          if (registered.agent?.endpoints?.length) {
+            try {
+              const challenge = await repo.createVerificationChallenge(registered.agent.id, 0, { source });
+              verification = { status: 'challenge_created', challenge, nextAction: 'publish_token_then_verify' };
+            } catch (error) {
+              verification = {
+                status: 'manual_challenge_required',
+                challenge: null,
+                error: error?.code || 'verification_challenge_creation_failed',
+                challengeEndpoint: `/api/v1/agents/${encodeURIComponent(registered.agent.id)}/verification-challenges`
+              };
+            }
+          }
           return {
             status: 201,
             payload: {
@@ -116,7 +132,8 @@ export default {
                 apiKey: registered.credential.apiKey,
                 credentialId: registered.credential.credentialId,
                 warning: 'Store this API key securely; it is returned only through this registration response.'
-              }
+              },
+              verification
             }
           };
         });
