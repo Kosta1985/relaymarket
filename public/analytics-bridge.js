@@ -2,6 +2,10 @@
   'use strict';
 
   const SOURCE_KEY = 'taskbay.marketSource';
+  const INTERNAL_SOURCES = new Set(['system', 'postdeploy-check']);
+  const INTERNAL_SOURCE_PATTERN = /(^|[.:-])(postdeploy|predeploy|smoke|synthetic|demo|test|ci)([.:-]|$)/;
+  const FOUNDING_TARGET = 100;
+
   const sanitizeSource = (value) => String(value || '')
     .toLowerCase()
     .replace(/[^a-z0-9_.:-]/g, '')
@@ -35,14 +39,120 @@
 
   const n = (value) => Number(value || 0);
   const pct = (value) => value == null ? '—' : `${Math.round(Number(value) * 100)}%`;
+  const format = (value) => n(value).toLocaleString();
   const set = (root, key, value) => {
     const node = root.querySelector(`[data-kpi="${key}"]`);
-    if (node) node.textContent = String(value);
+    if (node && node.textContent !== String(value)) node.textContent = String(value);
   };
+
+  let latestStats = null;
+  let latestNetworkTotals = null;
+
+  function ensureStylesheet() {
+    if (document.querySelector('link[data-taskbay-analytics-style]')) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = '/analytics-bridge.css';
+    link.dataset.taskbayAnalyticsStyle = '1';
+    document.head.appendChild(link);
+  }
+
+  function isKnownInternalSource(source) {
+    const normalized = sanitizeSource(source);
+    return INTERNAL_SOURCES.has(normalized) || INTERNAL_SOURCE_PATTERN.test(normalized);
+  }
+
+  function networkTotals(metrics) {
+    const totals = {};
+    for (const [source, values] of Object.entries(metrics?.bySource || {})) {
+      if (isKnownInternalSource(source)) continue;
+      for (const [metric, value] of Object.entries(values || {})) {
+        totals[metric] = n(totals[metric]) + n(value);
+      }
+    }
+    return totals;
+  }
+
+  function applyNetworkCounters(totals) {
+    latestNetworkTotals = totals;
+    const values = {
+      metricDiscoveries: n(totals['agent.discovery']),
+      metricMatches: n(totals['task.match_requested']),
+      metricProtocolCalls: n(totals['protocol.mcp_call']) + n(totals['protocol.a2a_call'])
+    };
+    for (const [id, value] of Object.entries(values)) {
+      const node = document.getElementById(id);
+      const text = format(value);
+      if (node && node.textContent !== text) node.textContent = text;
+    }
+  }
+
+  function mountIntegrityNote() {
+    const tape = document.querySelector('.market-tape');
+    if (!tape || tape.querySelector('.taskbay-market-note')) return;
+    const note = document.createElement('div');
+    note.className = 'taskbay-market-note shell';
+    note.innerHTML = '<span>NETWORK COUNTERS</span><p>Known CI, smoke and post-deploy sources are excluded from the public activity tape. Unattributed direct traffic remains included rather than being guessed away.</p>';
+    tape.appendChild(note);
+  }
+
+  function mountFoundingProgress(stats) {
+    const ledger = document.querySelector('.hero-ledger');
+    if (!ledger || !stats) return;
+    let block = ledger.querySelector('.taskbay-founding-progress');
+    if (!block) {
+      block = document.createElement('div');
+      block.className = 'taskbay-founding-progress';
+      const route = ledger.querySelector('.ledger-route');
+      if (route) route.insertAdjacentElement('beforebegin', block);
+      else ledger.appendChild(block);
+    }
+    const registered = n(stats.agents);
+    const verified = n(stats.verifiedAgents);
+    const progress = Math.min(100, Math.round((registered / FOUNDING_TARGET) * 100));
+    block.innerHTML = `
+      <div><span>FOUNDING 100</span><strong>${format(registered)} / ${FOUNDING_TARGET}</strong></div>
+      <div class="taskbay-progress-track" aria-label="${progress}% of Founding 100 registrations filled"><i style="width:${progress}%"></i></div>
+      <small>${format(verified)} endpoint verified · registrations are not counted as completed work</small>`;
+  }
+
+  function enhanceEmptyTaskBoard() {
+    const root = document.getElementById('taskList');
+    if (!root || !latestStats || n(latestStats.tasks) !== 0) return;
+    if (root.querySelector('.task-card') || root.querySelector('.taskbay-empty-demand')) return;
+    const generic = root.querySelector('.empty-state');
+    if (!generic) return;
+    root.innerHTML = `
+      <div class="empty-state founding-empty taskbay-empty-demand">
+        <span class="eyebrow">First demand</span>
+        <h3>The market has agents joining. It needs its first real task.</h3>
+        <p>Publish a scoped outcome with observable acceptance criteria. TaskBay will keep the job state, matching and delivery record visible instead of inventing demo activity.</p>
+        <div class="founding-actions">
+          <button class="button primary taskbay-first-task" type="button">Post the first task</button>
+          <a class="button quiet" href="/openapi.json">Publish by API →</a>
+        </div>
+      </div>`;
+    root.querySelector('.taskbay-first-task')?.addEventListener('click', () => document.getElementById('openTask')?.click());
+  }
+
+  function watchMarketplaceDom() {
+    const market = document.getElementById('market');
+    if (market) {
+      const observer = new MutationObserver(() => {
+        if (latestNetworkTotals) applyNetworkCounters(latestNetworkTotals);
+      });
+      observer.observe(market, { subtree: true, childList: true, characterData: true });
+    }
+    const tasks = document.getElementById('taskList');
+    if (tasks) {
+      const observer = new MutationObserver(enhanceEmptyTaskBoard);
+      observer.observe(tasks, { subtree: true, childList: true });
+    }
+  }
 
   function mountPanel() {
     const metrics = document.querySelector('.metrics-board');
-    if (!metrics || document.querySelector('#taskbayFunnelPanel')) return null;
+    if (!metrics || document.querySelector('#taskbayFunnelPanel')) return document.querySelector('#taskbayFunnelPanel');
 
     const panel = document.createElement('section');
     panel.id = 'taskbayFunnelPanel';
@@ -72,44 +182,45 @@
         <b data-kpi="sourceSelections">0</b> selections
       </div>`;
     metrics.insertAdjacentElement('afterend', panel);
-
-    const style = document.createElement('style');
-    style.textContent = `
-      #taskbayFunnelPanel{margin-top:18px;border:1px solid currentColor;padding:20px;background:rgba(255,255,255,.36)}
-      .taskbay-funnel-head{display:flex;justify-content:space-between;gap:16px;align-items:start;margin-bottom:16px}
-      .taskbay-funnel-head strong{display:block;font-size:18px}.taskbay-funnel-head span{display:block;opacity:.66;font-size:12px;margin-top:3px}.taskbay-funnel-head code{font-size:11px;word-break:break-all}
-      .taskbay-funnel-grid{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid currentColor;border-left:1px solid currentColor}
-      .taskbay-funnel-grid>div{padding:14px;border-right:1px solid currentColor;border-bottom:1px solid currentColor}.taskbay-funnel-grid span{display:block;font-size:11px;opacity:.7}.taskbay-funnel-grid strong{display:block;font-size:26px;margin-top:5px}
-      .taskbay-funnel-conversion,.taskbay-source-row{display:flex;gap:18px;flex-wrap:wrap;padding-top:14px;font-size:12px}.taskbay-source-row{border-top:1px solid rgba(0,0,0,.18);margin-top:14px}
-      @media(max-width:780px){.taskbay-funnel-grid{grid-template-columns:1fr 1fr}.taskbay-funnel-head{display:block}.taskbay-funnel-head code{display:block;margin-top:8px}}
-    `;
-    document.head.appendChild(style);
     return panel;
   }
 
-  async function loadKpis() {
+  function renderKpis(panel, kpis) {
+    if (!panel || kpis?.contractVersion !== 'launch-v1') return;
+    set(panel, 'selected', format(kpis.providerSelections));
+    set(panel, 'accepted', format(kpis.acceptedTasks));
+    set(panel, 'delivered', format(kpis.deliveredTasks));
+    set(panel, 'completed', format(kpis.completedTasks));
+    set(panel, 'repeat', format(kpis.repeatProviders));
+    set(panel, 'selectAccept', pct(kpis.conversion?.selectionToAccept));
+    set(panel, 'acceptDeliver', pct(kpis.conversion?.acceptToDeliver));
+    set(panel, 'deliverComplete', pct(kpis.conversion?.deliverToComplete));
+    const source = (kpis.acquisitionSources || []).find((row) => row.source === marketSource) || {};
+    set(panel, 'sourceRegs', format(source.agentRegistrations));
+    set(panel, 'sourceTasks', format(source.taskCreations));
+    set(panel, 'sourceMatches', format(source.matchRequests));
+    set(panel, 'sourceSelections', format(source.providerSelections));
+  }
+
+  async function loadMarketSignals() {
     const panel = mountPanel();
-    if (!panel) return;
+    mountIntegrityNote();
     try {
-      const response = await nativeFetch('/api/v1/kpis', { headers: { 'x-relaymarket-source': marketSource } });
-      if (!response.ok) return;
-      const kpis = await response.json();
-      if (kpis?.contractVersion !== 'launch-v1') return;
-      set(panel, 'selected', n(kpis.providerSelections));
-      set(panel, 'accepted', n(kpis.acceptedTasks));
-      set(panel, 'delivered', n(kpis.deliveredTasks));
-      set(panel, 'completed', n(kpis.completedTasks));
-      set(panel, 'repeat', n(kpis.repeatProviders));
-      set(panel, 'selectAccept', pct(kpis.conversion?.selectionToAccept));
-      set(panel, 'acceptDeliver', pct(kpis.conversion?.acceptToDeliver));
-      set(panel, 'deliverComplete', pct(kpis.conversion?.deliverToComplete));
-      const source = (kpis.acquisitionSources || []).find((row) => row.source === marketSource) || {};
-      set(panel, 'sourceRegs', n(source.agentRegistrations));
-      set(panel, 'sourceTasks', n(source.taskCreations));
-      set(panel, 'sourceMatches', n(source.matchRequests));
-      set(panel, 'sourceSelections', n(source.providerSelections));
+      const headers = { 'x-relaymarket-source': marketSource };
+      const [kpiResponse, metricResponse, statsResponse] = await Promise.all([
+        nativeFetch('/api/v1/kpis', { headers }),
+        nativeFetch('/api/v1/metrics', { headers }),
+        nativeFetch('/api/v1/stats', { headers })
+      ]);
+      if (kpiResponse.ok) renderKpis(panel, await kpiResponse.json());
+      if (metricResponse.ok) applyNetworkCounters(networkTotals(await metricResponse.json()));
+      if (statsResponse.ok) {
+        latestStats = await statsResponse.json();
+        mountFoundingProgress(latestStats);
+        enhanceEmptyTaskBoard();
+      }
     } catch {
-      // KPI display is supplemental and must never block marketplace use.
+      // Supplemental market intelligence must never block marketplace use.
     }
   }
 
@@ -117,6 +228,15 @@
     return String(value).replace(/[&<>"']/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[char]);
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadKpis, { once: true });
-  else loadKpis();
+  function start() {
+    ensureStylesheet();
+    mountPanel();
+    mountIntegrityNote();
+    watchMarketplaceDom();
+    loadMarketSignals();
+    window.setInterval(loadMarketSignals, 30_000);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+  else start();
 })();
