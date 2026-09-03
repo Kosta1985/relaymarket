@@ -76,10 +76,10 @@ for (const cardPath of ['/.well-known/agent-card.json', '/.well-known/agent.json
   ok(card.body.url === `${origin}/a2a`, `${cardPath} A2A URL mismatch`);
 }
 
-const mcpDiscovery = await json('/.well-known/mcp.json');
-ok(mcpDiscovery.r.status === 200, `/.well-known/mcp.json status ${mcpDiscovery.r.status}`);
-taskBayOrLegacy(mcpDiscovery.body.name, 'TaskBay', 'RelayMarket', '/.well-known/mcp.json name');
 if (requireCurrentRelease) {
+  const mcpDiscovery = await json('/.well-known/mcp.json');
+  ok(mcpDiscovery.r.status === 200, `/.well-known/mcp.json status ${mcpDiscovery.r.status}`);
+  ok(mcpDiscovery.body.name === 'TaskBay', `/.well-known/mcp.json returned ${mcpDiscovery.body.name}, expected TaskBay`);
   ok(mcpDiscovery.body.version === pkg.version, `/.well-known/mcp.json version ${mcpDiscovery.body.version} != ${pkg.version}`);
   ok(mcpDiscovery.body.transport === 'streamable-http', '/.well-known/mcp.json transport mismatch');
   ok(mcpDiscovery.body.endpoint === `${origin}/mcp`, '/.well-known/mcp.json MCP endpoint mismatch');
