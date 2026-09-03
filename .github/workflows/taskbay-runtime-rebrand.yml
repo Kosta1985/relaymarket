@@ -35,7 +35,6 @@ jobs:
                   raise SystemExit(f'{label}: expected at least {minimum} occurrence(s), found {count}')
               return text.replace(old, new)
 
-          # Public machine discovery: TaskBay is the advertised protocol/tool brand.
           p = 'src/discovery.js'
           t = read(p)
           t = required(t, "name: 'X-RelayMarket-Source'", "name: 'X-TaskBay-Source'", p + ' source header')
@@ -45,7 +44,6 @@ jobs:
               raise SystemExit(f'{p}: expected MCP tool declarations to migrate, changed {count}')
           write(p, t)
 
-          # Cloudflare runtime: new brand/output names, new source header, legacy aliases accepted.
           p = 'cloudflare/src/index.js'
           t = read(p)
           t = required(t,
@@ -67,7 +65,6 @@ jobs:
           t = t.replace('`relaymarket-protection-', '`taskbay-protection-')
           write(p, t)
 
-          # Local protocol runtime mirrors Cloudflare behavior.
           p = 'src/protocols.js'
           t = read(p)
           t = t.replace('Use RelayMarket tools to discover agents, publish tasks, rank matches, inspect tasks, read task messages, and query marketplace statistics.', 'Use TaskBay tools to discover agents, publish tasks, rank matches, inspect tasks, read task messages, and query marketplace statistics.')
@@ -80,7 +77,6 @@ jobs:
               raise SystemExit(f'{p}: expected local MCP legacy aliases, changed {count}')
           write(p, t)
 
-          # Browser portal uses TaskBay storage/header names; old session storage remains readable during migration.
           p = 'public/app.js'
           t = read(p)
           t = required(t, "const SESSION_KEYS = 'relaymarket.sessionCredentials';", "const SESSION_KEYS = 'taskbay.sessionCredentials';\nconst LEGACY_SESSION_KEYS = 'relaymarket.sessionCredentials';", p + ' session key')
@@ -97,7 +93,6 @@ jobs:
           t = t.replace("const headers = { 'x-relaymarket-source': marketSource };", "const headers = { 'x-taskbay-source': marketSource };")
           write(p, t)
 
-          # Local HTTP runtime and security configuration get TaskBay-first names with legacy env fallbacks.
           p = 'src/server.js'
           t = read(p)
           t = t.replace("service:'relaymarket'", "service:'taskbay'")
@@ -112,7 +107,6 @@ jobs:
           t = t.replace('`RelayMarket-Ownership-Verifier/${VERSION}`', '`TaskBay-Ownership-Verifier/${VERSION}`')
           write(p, t)
 
-          # New credentials/challenges are TaskBay-prefixed; old credentials still authenticate.
           p = 'src/store.js'
           t = read(p)
           t = required(t, "const DATA_FILE=process.env.RELAYMARKET_DATA_FILE||new URL('../data/market.json',import.meta.url);", "const DATA_FILE=process.env.TASKBAY_DATA_FILE||process.env.RELAYMARKET_DATA_FILE||new URL('../data/market.json',import.meta.url);", p + ' data env')
@@ -130,7 +124,6 @@ jobs:
           t = t.replace('/.well-known/relaymarket-verification.txt', '/.well-known/taskbay-verification.txt')
           write(p, t)
 
-          # Stripe dashboard metadata is TaskBay-branded; webhook reader accepts old metadata too.
           p = 'cloudflare/src/stripe.js'
           t = read(p)
           t = t.replace('`relaymarket_${payment.taskId}`', '`taskbay_${payment.taskId}`')
@@ -138,15 +131,9 @@ jobs:
           t = t.replace('metadata[relaymarket_task_id]', 'metadata[taskbay_task_id]')
           t = t.replace('metadata[relaymarket_platform_fee_bps]', 'metadata[taskbay_platform_fee_bps]')
           write(p, t)
-
-          # CI's synthetic canonical host follows the current brand.
-          p = '.github/workflows/ci.yml'
-          t = read(p).replace('PUBLIC_ORIGIN=https://relaymarket.example', 'PUBLIC_ORIGIN=https://taskbay.example')
-          write(p, t)
           PY
           git diff --check
           git diff --stat
-          git diff -- src/discovery.js cloudflare/src/index.js src/protocols.js public/app.js public/analytics-bridge.js src/server.js src/security.js src/store.js cloudflare/src/repository.js cloudflare/src/stripe.js .github/workflows/ci.yml
       - name: Commit TaskBay runtime migration
         shell: bash
         run: |
@@ -156,6 +143,6 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src/discovery.js cloudflare/src/index.js src/protocols.js public/app.js public/analytics-bridge.js src/server.js src/security.js src/store.js cloudflare/src/repository.js cloudflare/src/stripe.js .github/workflows/ci.yml
+          git add src/discovery.js cloudflare/src/index.js src/protocols.js public/app.js public/analytics-bridge.js src/server.js src/security.js src/store.js cloudflare/src/repository.js cloudflare/src/stripe.js
           git commit -m 'Migrate TaskBay runtime branding and compatibility aliases'
           git push origin HEAD:main
