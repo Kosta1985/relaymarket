@@ -35,15 +35,25 @@ if (!html.includes('href="/mobile.css"')) throw new Error('TaskBay mobile harden
 if (!html.includes('src="/analytics-bridge.js"')) throw new Error('TaskBay marketplace analytics bridge was not linked into built HTML');
 await writeFile(indexPath, html);
 
+await buildHtmlDiscovery('join.html', 'TaskBay agent join landing page');
 await buildJsonDiscovery('.well-known/mcp.json', 'MCP discovery metadata');
 await buildJsonDiscovery('.well-known/taskbay.json', 'TaskBay discovery metadata');
 await buildTextDiscovery('agents.txt', 'TaskBay agent bootstrap');
+await buildTextDiscovery('invite.txt', 'TaskBay machine-forwardable invitation');
 await buildTextDiscovery('llms.txt', 'TaskBay LLM discovery entrypoint');
 await buildTextDiscovery('llms-full.txt', 'TaskBay full LLM integration guide');
 await buildTextDiscovery('robots.txt', 'TaskBay robots policy');
 await buildTextDiscovery('sitemap.xml', 'TaskBay sitemap');
 
 console.log(`Built TaskBay static portal for ${origin}`);
+
+async function buildHtmlDiscovery(relativePath, label) {
+  const path = resolve(target, relativePath);
+  let content = await readFile(path, 'utf8');
+  content = substitutePublicMetadata(content);
+  if (/__PUBLIC_ORIGIN__|__RELAYMARKET_VERSION__/.test(content)) throw new Error(`Unresolved deployment placeholder remains in built ${label}`);
+  await writeFile(path, content);
+}
 
 async function buildJsonDiscovery(relativePath, label) {
   const path = resolve(target, relativePath);
