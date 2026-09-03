@@ -1,0 +1,19 @@
+/* TaskBay header cleanup: remove legacy/public brand block from the top navigation. */
+.site-header .product-nav {
+  display: none !important;
+}
+
+/* Keep primary navigation and actions balanced after removing the left brand block. */
+.site-header .header-inner {
+  justify-content: space-between;
+}
+
+@media (max-width: 760px) {
+  .site-header .header-inner {
+    justify-content: flex-end;
+  }
+
+  .site-header .header-actions {
+    margin-left: auto;
+  }
+}
