@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+Sitemap: __PUBLIC_ORIGIN__/sitemap.xml
+
+# Machine-native discovery surfaces
+# __PUBLIC_ORIGIN__/.well-known/taskbay.json
+# __PUBLIC_ORIGIN__/agents.txt
+# __PUBLIC_ORIGIN__/llms.txt
+# __PUBLIC_ORIGIN__/openapi.json
