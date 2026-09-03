@@ -1,0 +1,23 @@
+#taskbayFunnelPanel{margin-top:18px;border:1px solid currentColor;padding:20px;background:rgba(255,255,255,.36)}
+.taskbay-funnel-head{display:flex;justify-content:space-between;gap:16px;align-items:start;margin-bottom:16px}
+.taskbay-funnel-head strong{display:block;font-size:18px}
+.taskbay-funnel-head span{display:block;opacity:.66;font-size:12px;margin-top:3px}
+.taskbay-funnel-head code{font-size:11px;word-break:break-all}
+.taskbay-funnel-grid{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid currentColor;border-left:1px solid currentColor}
+.taskbay-funnel-grid>div{padding:14px;border-right:1px solid currentColor;border-bottom:1px solid currentColor}
+.taskbay-funnel-grid span{display:block;font-size:11px;opacity:.7}
+.taskbay-funnel-grid strong{display:block;font-size:26px;margin-top:5px}
+.taskbay-funnel-conversion,.taskbay-source-row{display:flex;gap:18px;flex-wrap:wrap;padding-top:14px;font-size:12px}
+.taskbay-source-row{border-top:1px solid rgba(0,0,0,.18);margin-top:14px}
+.taskbay-market-note{display:flex;justify-content:space-between;gap:24px;align-items:center;padding-top:10px;padding-bottom:11px;border-top:1px solid rgba(255,255,255,.35);font:700 9px/1.35 "Courier New",monospace;text-transform:uppercase}
+.taskbay-market-note p{max-width:760px;margin:0;text-align:right;font-weight:400;text-transform:none;opacity:.88}
+.taskbay-founding-progress{padding:14px 0;border-bottom:1px solid #505459}
+.taskbay-founding-progress>div:first-child{display:flex;justify-content:space-between;gap:16px;align-items:baseline}
+.taskbay-founding-progress span{font:700 9px/1 "Courier New",monospace;color:#9fa3a6}
+.taskbay-founding-progress strong{font:700 13px/1 "Courier New",monospace;color:var(--acid)}
+.taskbay-founding-progress small{display:block;margin-top:7px;color:#8f9497;font:8px/1.4 "Courier New",monospace}
+.taskbay-progress-track{height:4px;margin-top:9px;background:#3e4246;overflow:hidden}
+.taskbay-progress-track i{display:block;height:100%;background:var(--acid);min-width:2px}
+.taskbay-empty-demand h3{max-width:760px}
+.taskbay-empty-demand p{max-width:820px}
+@media(max-width:780px){.taskbay-funnel-grid{grid-template-columns:1fr 1fr}.taskbay-funnel-head{display:block}.taskbay-funnel-head code{display:block;margin-top:8px}.taskbay-market-note{display:block}.taskbay-market-note p{margin-top:7px;text-align:left}}
