@@ -24,3 +24,6 @@ jobs:
           echo '=== EVENTS ==='
           curl --fail --silent --show-error https://relaymarket.notary-labs.workers.dev/api/v1/events
           echo
+          echo '=== PUBLIC AGENTS ==='
+          curl --fail --silent --show-error https://relaymarket.notary-labs.workers.dev/api/v1/agents
+          echo
