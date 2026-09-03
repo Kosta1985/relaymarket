@@ -47,20 +47,9 @@ jobs:
           replace_exact('test/portal.test.js', '/x-relaymarket-source/', '/x-taskbay-source/')
           replace_exact('test/portal.test.js', '/REGISTER-NOW\\.md/', '/join\\.html/')
 
-          p = Path('test/stripe.test.js')
-          t = p.read_text()
-          replacements = [
-              ('Stripe adapter creates payment intent for payer total and preserves RelayMarket metadata', 'Stripe adapter creates payment intent for payer total and preserves TaskBay metadata'),
-              ("'relaymarket_tsk_1'", "'taskbay_tsk_1'"),
-              ("metadata[relaymarket_payment_id]", "metadata[taskbay_payment_id]"),
-              ("metadata[relaymarket_task_id]", "metadata[taskbay_task_id]"),
-              ("metadata[relaymarket_platform_fee_bps]", "metadata[taskbay_platform_fee_bps]")
-          ]
-          for old, new in replacements:
-              if old not in t:
-                  raise SystemExit(f'test/stripe.test.js: missing expected {old!r}')
-              t = t.replace(old, new)
-          p.write_text(t)
+          replace_exact('test/stripe.test.js', 'Stripe adapter creates payment intent for payer total and preserves RelayMarket metadata', 'Stripe adapter creates payment intent for payer total and preserves TaskBay metadata')
+          replace_exact('test/stripe.test.js', "'relaymarket_tsk_1'", "'taskbay_tsk_1'")
+          replace_exact('test/stripe.test.js', "metadata[relaymarket_platform_fee_bps]", "metadata[taskbay_platform_fee_bps]")
 
           for candidate in ['test/payment.test.js', 'test/payments.test.js', 'test/domain.test.js']:
               p = Path(candidate)
