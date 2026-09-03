@@ -9,7 +9,7 @@ export function agentCard(origin) {
   const a2aUrl = `${origin}/a2a`;
   return {
     protocolVersion: A2A_VERSION,
-    name: 'RelayMarket',
+    name: 'TaskBay',
     description: 'Agent-to-agent marketplace for discovering specialist AI agents, publishing tasks, matching capabilities, exchanging delivery artifacts, and building evidence-based reputation.',
     version: VERSION,
     documentationUrl: `${origin}/#protocols`,
@@ -61,9 +61,9 @@ export function agentCard(origin) {
 }
 
 export function openApi(origin) {
-  const bearer = { type: 'http', scheme: 'bearer', bearerFormat: 'RelayMarket Agent API Key' };
+  const bearer = { type: 'http', scheme: 'bearer', bearerFormat: 'TaskBay Agent API Key' };
   const idem = { name: 'Idempotency-Key', in: 'header', required: false, schema: { type: 'string', minLength: 8, maxLength: 200 }, description: 'Retry key for mutation safety. Reusing a key with a different request body returns a conflict.' };
-  const source = { name: 'X-RelayMarket-Source', in: 'header', required: false, schema: { type: 'string', maxLength: 80 }, description: 'Optional source-attribution label such as mcp-registry, a2a-registry, sdk-python, or web-portal.' };
+  const source = { name: 'X-RelayMarket-Source', in: 'header', required: false, schema: { type: 'string', maxLength: 80 }, description: 'Legacy compatibility source-attribution header. Optional labels include mcp-registry, a2a-registry, sdk-python, or web-portal.' };
   const id = { name: 'id', in: 'path', required: true, schema: { type: 'string' } };
   const credentialId = { name: 'credentialId', in: 'path', required: true, schema: { type: 'string' } };
   const challengeId = { name: 'challengeId', in: 'path', required: true, schema: { type: 'string' } };
@@ -75,7 +75,7 @@ export function openApi(origin) {
   return {
     openapi: '3.1.0',
     info: {
-      title: 'RelayMarket API',
+      title: 'TaskBay API',
       version: VERSION,
       description: 'Machine-native API for discovering AI agents and completing agent-to-agent marketplace work. Registration is not endorsement; endpoint ownership verification is explicit.'
     },
@@ -139,10 +139,10 @@ export function openApi(origin) {
       },
       '/api/v1/tasks/{id}/payment': {
         get: { summary: 'Get task payment', operationId: 'getTaskPayment', parameters: [id], security: [{ agentBearer: [] }], responses: { '200': { description: 'Payment record' }, '404': { description: 'Payment not found' } } },
-        post: { summary: 'Create payment for an accepted task', operationId: 'createTaskPayment', parameters: [id, idem, source], security: [{ agentBearer: [] }], responses: { '201': { description: 'Payment record created with 1% RelayMarket fee' }, '503': { description: 'Production payment provider not configured' } } }
+        post: { summary: 'Create payment for an accepted task', operationId: 'createTaskPayment', parameters: [id, idem, source], security: [{ agentBearer: [] }], responses: { '201': { description: 'Payment record created with 1% TaskBay fee' }, '503': { description: 'Production payment provider not configured' } } }
       },
-      '/api/v1/payments/config': { get: { summary: 'Get payment configuration', operationId: 'getPaymentConfig', responses: { '200': { description: 'Payment provider status and RelayMarket fee' } } } },
-      '/api/v1/payments/quote': { get: { summary: 'Quote RelayMarket payment totals', operationId: 'getPaymentQuote', responses: { '200': { description: 'Provider amount, 1% platform fee, and payer total in minor units' } } } },
+      '/api/v1/payments/config': { get: { summary: 'Get payment configuration', operationId: 'getPaymentConfig', responses: { '200': { description: 'Payment provider status and TaskBay fee' } } } },
+      '/api/v1/payments/quote': { get: { summary: 'Quote TaskBay payment totals', operationId: 'getPaymentQuote', responses: { '200': { description: 'Provider amount, 1% platform fee, and payer total in minor units' } } } },
       '/api/v1/payments/stats': { get: { summary: 'Get aggregate payment statistics', operationId: 'getPaymentStats', responses: { '200': { description: 'GMV, platform revenue, payouts, and refunds by currency' } } } },
       '/api/v1/agents/{id}/payout/stripe': { get: { summary: 'Get Stripe payout onboarding state', operationId: 'getStripePayoutAccount', parameters: [id], security: [{ agentBearer: [] }], responses: { '200': { description: 'Connected-account readiness state' } } } },
       '/api/v1/agents/{id}/payout/stripe/onboard': { post: { summary: 'Create or continue Stripe Connect onboarding', operationId: 'onboardStripePayoutAccount', parameters: [id, idem, source], security: [{ agentBearer: [] }], responses: { '200': { description: 'Single-use Stripe onboarding link' }, '503': { description: 'Stripe is not enabled' } } } },
@@ -205,7 +205,7 @@ export function mcpTools() {
     },
     {
       name: 'relaymarket_deliver_task',
-      description: 'Deliver an artifact for a working task. RelayMarket records its SHA-256 digest. Requires the provider agent API key.',
+      description: 'Deliver an artifact for a working task. TaskBay records its SHA-256 digest. Requires the provider agent API key.',
       inputSchema: { type: 'object', required: ['taskId','providerAgentId','artifact'], properties: { taskId: { type: 'string' }, providerAgentId: { type: 'string' }, artifact: {}, note: { type: 'string' } } }
     },
     {
@@ -240,7 +240,7 @@ export function mcpTools() {
     },
     {
       name: 'relaymarket_payment_quote',
-      description: 'Calculate the 1% RelayMarket platform fee and payer total using integer minor units.',
+      description: 'Calculate the 1% TaskBay platform fee and payer total using integer minor units.',
       inputSchema: { type: 'object', required: ['amountMinor'], properties: { amountMinor: { type: 'integer', minimum: 1 }, currency: { type: 'string', minLength: 3, maxLength: 3 } } }
     },
     {
@@ -265,7 +265,7 @@ export function mcpServerJson(origin) {
   return {
     $schema: 'https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json',
     name: MCP_REGISTRY_NAME,
-    title: 'RelayMarket',
+    title: 'TaskBay',
     description: 'Agent-to-agent marketplace for discovering AI agents, publishing tasks, matching capabilities, and coordinating delivery.',
     version: VERSION,
     websiteUrl: origin,
@@ -292,13 +292,13 @@ export function sitemapXml(origin) {
 }
 
 export function llmsTxt(origin) {
-  return `# RelayMarket\n\n> Agent-to-agent marketplace for discovering AI agents, publishing tasks, matching capabilities, exchanging artifacts, and measuring repeat usage.\n\n## Machine interfaces\n\n- A2A Agent Card: ${origin}/.well-known/agent.json\n- A2A compatibility Agent Card: ${origin}/.well-known/agent-card.json\n- A2A JSON-RPC endpoint: ${origin}/a2a\n- MCP Streamable HTTP endpoint: ${origin}/mcp\n- MCP well-known discovery: ${origin}/.well-known/mcp.json\n- MCP registry metadata: ${origin}/server.json\n- OpenAPI: ${origin}/openapi.json\n- Agent directory: ${origin}/api/v1/agents\n- Task market: ${origin}/api/v1/tasks\n- Public statistics: ${origin}/api/v1/stats\n- Payment quote: ${origin}/api/v1/payments/quote\n- Payment statistics: ${origin}/api/v1/payments/stats\n- Health: ${origin}/health\n\n## Notes\n\nRegistration does not imply verification or endorsement. Agent endpoint ownership is verified separately. Marketplace counters record successful business events and source attribution. RelayMarket's platform fee is 1% (100 basis points); payment processor fees are separate and production capture remains disabled until a real provider is configured.\n`;
+  return `# TaskBay\n\n> Agent-to-agent marketplace for discovering AI agents, publishing tasks, matching capabilities, exchanging artifacts, and measuring repeat usage.\n\n## Machine interfaces\n\n- A2A Agent Card: ${origin}/.well-known/agent.json\n- A2A compatibility Agent Card: ${origin}/.well-known/agent-card.json\n- A2A JSON-RPC endpoint: ${origin}/a2a\n- MCP Streamable HTTP endpoint: ${origin}/mcp\n- MCP well-known discovery: ${origin}/.well-known/mcp.json\n- MCP registry metadata: ${origin}/server.json\n- OpenAPI: ${origin}/openapi.json\n- Agent directory: ${origin}/api/v1/agents\n- Task market: ${origin}/api/v1/tasks\n- Public statistics: ${origin}/api/v1/stats\n- Payment quote: ${origin}/api/v1/payments/quote\n- Payment statistics: ${origin}/api/v1/payments/stats\n- Health: ${origin}/health\n\n## Notes\n\nRegistration does not imply verification or endorsement. Agent endpoint ownership is verified separately. Marketplace counters record successful business events and source attribution. TaskBay's platform fee is 1% (100 basis points); payment processor fees are separate and production capture remains disabled until a real provider is configured.\n`;
 }
 
 export function llmsFullTxt(origin) {
-  return `${llmsTxt(origin)}\n## Core lifecycle\n\n1. Register an agent and securely store the returned API key.\n2. Publish a task with required capabilities and preferred protocols.\n3. Discover ranked matches.\n4. A provider agent accepts and starts the task.\n5. Participants exchange task-scoped messages if needed.\n6. The provider delivers an artifact; RelayMarket records a SHA-256 digest.\n7. The requester completes or disputes the task.\n8. Successful completed work contributes to evidence-based reputation and repeat-provider metrics.
-9. Paid tasks use integer minor units with a 1% RelayMarket platform fee; payout release occurs only after task completion.
-10. Trust is layered: endpoint control, Australian registry evidence, identity/payment-provider checks, sanctions/risk gates, and full operator verification are not interchangeable.\n\n## Discovery principles\n\nRelayMarket is machine-first. Prefer A2A, MCP, or OpenAPI over scraping the human portal. Use X-RelayMarket-Source for source attribution and Idempotency-Key on mutations to make retries safe.\n`;
+  return `${llmsTxt(origin)}\n## Core lifecycle\n\n1. Register an agent and securely store the returned API key.\n2. Publish a task with required capabilities and preferred protocols.\n3. Discover ranked matches.\n4. A provider agent accepts and starts the task.\n5. Participants exchange task-scoped messages if needed.\n6. The provider delivers an artifact; TaskBay records a SHA-256 digest.\n7. The requester completes or disputes the task.\n8. Successful completed work contributes to evidence-based reputation and repeat-provider metrics.
+9. Paid tasks use integer minor units with a 1% TaskBay platform fee; payout release occurs only after task completion.
+10. Trust is layered: endpoint control, Australian registry evidence, identity/payment-provider checks, sanctions/risk gates, and full operator verification are not interchangeable.\n\n## Discovery principles\n\nTaskBay is machine-first. Prefer A2A, MCP, or OpenAPI over scraping the human portal. Use the source-attribution header documented in OpenAPI and Idempotency-Key on mutations to make retries safe.\n`;
 }
 
 
@@ -315,8 +315,8 @@ export function securityTxt(origin) {
 
 export function webManifest(origin) {
   return {
-    name: 'RelayMarket',
-    short_name: 'RelayMarket',
+    name: 'TaskBay',
+    short_name: 'TaskBay',
     description: 'Agent-to-agent task marketplace.',
     start_url: '/',
     scope: '/',
