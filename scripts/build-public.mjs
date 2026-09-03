@@ -73,6 +73,7 @@ await buildJsonDiscovery('onboard.json', 'TaskBay autonomous onboarding contract
 await buildJsonDiscovery('ecosystems.json', 'TaskBay ecosystem acquisition catalog');
 await buildTextDiscovery('agents.txt', 'TaskBay agent bootstrap');
 await buildTextDiscovery('invite.txt', 'TaskBay machine-forwardable invitation');
+await buildTextDiscovery('verify.txt', 'TaskBay endpoint verification rescue guide');
 await buildTextDiscovery('frameworks.txt', 'TaskBay framework acquisition routes');
 await buildTextDiscovery('llms.txt', 'TaskBay LLM discovery entrypoint');
 await buildTextDiscovery('llms-full.txt', 'TaskBay full LLM integration guide');
