@@ -38,6 +38,8 @@ await writeFile(indexPath, html);
 await buildJsonDiscovery('.well-known/mcp.json', 'MCP discovery metadata');
 await buildJsonDiscovery('.well-known/taskbay.json', 'TaskBay discovery metadata');
 await buildTextDiscovery('agents.txt', 'TaskBay agent bootstrap');
+await buildTextDiscovery('robots.txt', 'TaskBay robots policy');
+await buildTextDiscovery('sitemap.xml', 'TaskBay sitemap');
 
 console.log(`Built TaskBay static portal for ${origin}`);
 
