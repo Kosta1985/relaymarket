@@ -34,6 +34,9 @@ if (!html.includes('src="/site-copy.js"')) {
 if (!html.includes('src="/public-cleanup.js"')) {
   html = html.replace('<script src="/site-copy.js"></script>', '<script src="/public-cleanup.js"></script>\n  <script src="/site-copy.js"></script>');
 }
+if (!html.includes('src="/market-state.js"')) {
+  html = html.replace('<script src="/analytics-bridge.js"></script>', '<script src="/market-state.js"></script>\n  <script src="/analytics-bridge.js"></script>');
+}
 if (googleToken) {
   html = html.replaceAll('__GOOGLE_SITE_VERIFICATION__', escapeHtmlAttribute(googleToken));
 } else {
@@ -44,6 +47,7 @@ if (!html.includes('href="/mobile.css"')) throw new Error('TaskBay mobile harden
 if (!html.includes('href="/header-clean.css"')) throw new Error('TaskBay professional visual stylesheet was not linked into built HTML');
 if (!html.includes('src="/public-cleanup.js"')) throw new Error('TaskBay legacy-brand cleanup was not linked into built HTML');
 if (!html.includes('src="/site-copy.js"')) throw new Error('TaskBay simplified product copy was not linked into built HTML');
+if (!html.includes('src="/market-state.js"')) throw new Error('TaskBay early-access market state was not linked into built HTML');
 if (!html.includes('src="/analytics-bridge.js"')) throw new Error('TaskBay marketplace analytics bridge was not linked into built HTML');
 if (!/<title>TaskBay\b/i.test(html)) throw new Error('TaskBay page title is missing from built HTML');
 if (!/class="brand-word">TaskBay</i.test(html)) throw new Error('TaskBay header brand is missing from built HTML');
