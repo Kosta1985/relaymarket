@@ -7,7 +7,7 @@ const required = [
   '.github/workflows/codeql.yml','.github/workflows/production-smoke.yml','docs/SECURITY.md',
   'docs/TRUST-SAFETY-AU.md','docs/PAYMENTS.md','docs/DISCOVERY.md','docs/DEPLOYMENT.md','docs/STATUS.md',
   'docs/BRAND-MIGRATION.md','public/robots.txt','public/sitemap.xml','public/llms.txt','public/llms-full.txt',
-  'public/invite.txt','public/frameworks.txt','public/join.html','public/.well-known/taskbay.json',
+  'public/invite.txt','public/frameworks.txt','public/join.html','public/integrations.html','public/ecosystems.json','public/.well-known/taskbay.json',
   '.github/workflows/mcp-registry-validate.yml','.github/workflows/mcp-registry-publish.yml','.github/workflows/a2a-registry-submit.yml'
 ];
 for (const file of required) await readFile(file, 'utf8');
@@ -21,7 +21,7 @@ if (!redeploy.includes('https://relaymarket.notary-labs.workers.dev')) throw new
 if (!redeploy.includes('d1 migrations list relaymarket --remote')) throw new Error('production D1 compatibility target changed unexpectedly');
 
 const buildPublic = await readFile('scripts/build-public.mjs', 'utf8');
-for (const discoveryFile of ['robots.txt', 'sitemap.xml', 'llms.txt', 'llms-full.txt', '.well-known/taskbay.json', 'agents.txt', 'invite.txt', 'frameworks.txt', 'join.html']) {
+for (const discoveryFile of ['robots.txt','sitemap.xml','llms.txt','llms-full.txt','.well-known/taskbay.json','agents.txt','invite.txt','frameworks.txt','join.html','integrations.html','ecosystems.json']) {
   if (!buildPublic.includes(discoveryFile)) throw new Error(`public build does not process ${discoveryFile}`);
 }
 
@@ -34,15 +34,30 @@ for (const source of ['framework-openai-agents','framework-langgraph','framework
   if (!frameworks.includes(`source=${source}`)) throw new Error(`framework acquisition route missing ${source}`);
 }
 
+const ecosystems = JSON.parse(await readFile('public/ecosystems.json', 'utf8'));
+for (const source of ['framework-openai-agents','framework-langgraph','framework-crewai','framework-google-adk','framework-microsoft-agent','framework-mastra','framework-pydanticai','framework-agno','framework-smolagents','framework-llamaindex','framework-letta','framework-cloudflare-agents','mcp-registry','a2a-registry','github']) {
+  if (!ecosystems.ecosystems?.some((item) => item.source === source && String(item.join || '').includes(`source=${source}`))) {
+    throw new Error(`ecosystem catalog missing attributed route ${source}`);
+  }
+}
+
 const joinHtml = await readFile('public/join.html', 'utf8');
 if (!joinHtml.includes('TaskBay')) throw new Error('join page is not TaskBay branded');
 if (!joinHtml.includes('/frameworks.txt')) throw new Error('join page does not expose framework acquisition routes');
 if (/href="\/\?source=agent-invite/.test(joinHtml)) throw new Error('join page overwrites incoming acquisition source with agent-invite');
 if (!joinHtml.includes('<script src="/analytics-bridge.js"></script>')) throw new Error('join page is missing acquisition source persistence bridge');
 
+const integrationsHtml = await readFile('public/integrations.html', 'utf8');
+for (const source of ['framework-openai-agents','framework-langgraph','framework-crewai','framework-google-adk']) {
+  if (!integrationsHtml.includes(`source=${source}`)) throw new Error(`integrations page missing ${source}`);
+}
+if (!integrationsHtml.includes('/ecosystems.json')) throw new Error('integrations page is missing machine ecosystem catalog');
+
 const manifest = JSON.parse(await readFile('public/.well-known/taskbay.json', 'utf8'));
 if (!String(manifest.entrypoints?.agentJoin || '').includes('source=agent-invite')) throw new Error('TaskBay manifest is missing attributed agent join entrypoint');
 if (!String(manifest.entrypoints?.agentInvite || '').endsWith('/invite.txt')) throw new Error('TaskBay manifest is missing machine invite entrypoint');
+if (!String(manifest.entrypoints?.ecosystems || '').endsWith('/ecosystems.json')) throw new Error('TaskBay manifest is missing ecosystem catalog entrypoint');
+if (!String(manifest.entrypoints?.integrations || '').endsWith('/integrations.html')) throw new Error('TaskBay manifest is missing integrations landing page');
 
 const textFiles = [];
 async function walk(dir) {
