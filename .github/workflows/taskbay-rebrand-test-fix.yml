@@ -1,0 +1,46 @@
+name: TaskBay rebrand test fix
+
+on:
+  push:
+    paths:
+      - '.github/workflows/taskbay-rebrand-test-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Replace obsolete brand assertion exactly once
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('test/d1-edge.test.js')
+          text = path.read_text()
+          old = "assert.equal(alias.body.name,'RelayMarket');"
+          new = "assert.equal(alias.body.name,'TaskBay');"
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'Expected exactly one obsolete assertion, found {count}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          git diff --check
+          git diff -- test/d1-edge.test.js
+      - name: Commit TaskBay assertion
+        shell: bash
+        run: |
+          if git diff --quiet -- test/d1-edge.test.js; then
+            echo 'No patch required'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add test/d1-edge.test.js
+          git commit -m 'Align edge discovery test with TaskBay brand'
+          git push origin HEAD:main
