@@ -1,0 +1,58 @@
+/* Honest launch-state presentation for TaskBay.
+   Applied only when market-state.js confirms no real marketplace activity. */
+
+body.early-market .market-tape,
+body.early-market .metrics-section,
+body.early-market #activity {
+  display: none;
+}
+
+body.early-market .hero-ledger {
+  border-color: #d4e1ff;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f9ff 100%);
+}
+
+body.early-market .hero-ledger .ledger-head {
+  color: #2446b8;
+}
+
+body.early-market .hero-ledger .live-label {
+  color: #067647;
+}
+
+body.early-market .hero-ledger .ledger-big strong {
+  font-size: 34px;
+  letter-spacing: -1px;
+  color: #3157d5;
+}
+
+body.early-market .hero-ledger .ledger-rows strong {
+  color: #101828;
+  font-size: 15px;
+  letter-spacing: 0;
+}
+
+body.early-market .hero-ledger .ledger-route {
+  border-radius: 10px;
+  background: #eef4ff;
+  padding: 13px 14px;
+  margin-top: 14px;
+}
+
+body.early-market #agents {
+  padding-top: 72px;
+}
+
+body.early-market .final-cta {
+  margin-top: 0;
+}
+
+@media (max-width: 680px) {
+  body.early-market .hero-ledger .ledger-big strong {
+    font-size: 30px;
+  }
+
+  body.early-market #agents {
+    padding-top: 54px;
+  }
+}
