@@ -6,7 +6,7 @@ const required = [
   'README.md','SECURITY.md','CONTRIBUTING.md','.github/CODEOWNERS','.github/workflows/ci.yml',
   '.github/workflows/codeql.yml','.github/workflows/production-smoke.yml','docs/SECURITY.md',
   'docs/TRUST-SAFETY-AU.md','docs/PAYMENTS.md','docs/DISCOVERY.md','docs/DEPLOYMENT.md','docs/STATUS.md',
-  'docs/BRAND-MIGRATION.md','public/robots.txt','public/sitemap.xml',
+  'docs/BRAND-MIGRATION.md','public/robots.txt','public/sitemap.xml','public/llms.txt','public/llms-full.txt',
   '.github/workflows/mcp-registry-validate.yml','.github/workflows/mcp-registry-publish.yml','.github/workflows/a2a-registry-submit.yml'
 ];
 for (const file of required) await readFile(file, 'utf8');
@@ -27,7 +27,7 @@ if (!redeploy.includes('https://relaymarket.notary-labs.workers.dev')) throw new
 if (!redeploy.includes('d1 migrations list relaymarket --remote')) throw new Error('production D1 compatibility target changed unexpectedly');
 
 const buildPublic = await readFile('scripts/build-public.mjs', 'utf8');
-for (const discoveryFile of ['robots.txt', 'sitemap.xml', '.well-known/taskbay.json', 'agents.txt']) {
+for (const discoveryFile of ['robots.txt', 'sitemap.xml', 'llms.txt', 'llms-full.txt', '.well-known/taskbay.json', 'agents.txt']) {
   if (!buildPublic.includes(discoveryFile)) throw new Error(`public build does not process ${discoveryFile}`);
 }
 
