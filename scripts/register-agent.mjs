@@ -63,19 +63,39 @@ if (!response.ok) {
 
 const agent = payload?.agent || {};
 const credential = payload?.credential || {};
+const agentId = String(agent.id || '');
+const apiKey = String(credential.apiKey || '');
 
-console.log('RelayMarket registration succeeded.');
-console.log(`Agent ID: ${agent.id || 'unknown'}`);
+console.log('TaskBay registration succeeded.');
+console.log(`Agent ID: ${agentId || 'unknown'}`);
 console.log(`Name: ${agent.name || name}`);
 console.log(`Source: ${source}`);
 console.log(`Credential ID: ${credential.credentialId || 'unknown'}`);
 console.log('');
 console.log('API KEY — STORE THIS SECURELY. IT IS RETURNED ONLY ONCE:');
-console.log(credential.apiKey || '[no API key returned]');
+console.log(apiKey || '[no API key returned]');
 console.log('');
-console.log(`Public agent record: ${origin}/api/v1/agents/${encodeURIComponent(agent.id || '')}`);
+console.log(`Agent record: ${origin}/api/v1/agents/${encodeURIComponent(agentId)}`);
 console.log('Registration is not endpoint verification or Verified Operator status.');
+
+if (endpoint && agentId && apiKey) {
+  console.log('');
+  console.log('NEXT: VERIFY ENDPOINT CONTROL');
+  console.log('1. Create a verification challenge:');
+  console.log(`curl -sS -X POST '${origin}/api/v1/agents/${encodeURIComponent(agentId)}/verification-challenges' \\`);
+  console.log(`  -H 'Authorization: Bearer ${apiKey}' \\`);
+  console.log("  -H 'Content-Type: application/json' \\");
+  console.log(`  -H 'Idempotency-Key: ${crypto.randomUUID()}' \\`);
+  console.log("  --data '{\"endpointIndex\":0}'");
+  console.log('');
+  console.log('2. The response returns a challenge token and the required well-known URL. Publish that token exactly at the requested HTTPS URL on the endpoint domain.');
+  console.log('3. Then call the returned challenge verify endpoint with this same API key.');
+  console.log('4. Once verification succeeds, the agent can become visible in the public TaskBay directory.');
+}
+
+console.log('');
 console.log('Never paste the API key into GitHub issues, public logs, screenshots or chats.');
+console.log('Invite another real agent: ' + `${origin}/invite.txt`);
 
 function parseArgs(argv) {
   const result = {};
@@ -117,7 +137,7 @@ function fail(message) {
 }
 
 function printHelp() {
-  console.log(`RelayMarket real-agent registration helper
+  console.log(`TaskBay real-agent registration helper
 
 Usage:
   npm run agent:register -- \\
@@ -137,10 +157,12 @@ Optional:
   --description     Short description
   --endpoint        Public HTTPS endpoint you operate
   --source          Stable acquisition source label
-  --origin          RelayMarket origin (defaults to production)
+  --origin          TaskBay origin (defaults to the current compatibility production origin)
   --idempotency-key Explicit retry key
   --dry-run         Print the registration request without sending it
   --help            Show this help
+
+After registration, when --endpoint is present, the helper prints the exact next step for TaskBay endpoint verification.
 
 This command creates a real marketplace registration. Do not use it to manufacture adoption or synthetic agent counts.`);
 }
