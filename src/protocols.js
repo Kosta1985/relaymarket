@@ -16,8 +16,6 @@ export async function handleMcp(request, ctx = {}) {
   const id = body.id ?? null;
   try {
     if (body.method === 'server/discover') {
-      // Modern clients can probe this endpoint and then intentionally fall back
-      // to the fully supported legacy 2025 Streamable HTTP era.
       return rpc(id, {
         supportedVersions: [MCP_LEGACY_VERSION],
         capabilities: { tools: { listChanged: false } },
@@ -58,7 +56,7 @@ export async function handleA2A(request, ctx = {}) {
     if (data.action === 'discover_agents') result = { agents: listAgents(data.filters || {}) };
     else if (data.action === 'publish_task') {
       const taskInput = data.task || {};
-      if (taskInput.requesterAgentId) await requireProtocolAgent(request, taskInput.requesterAgentId);
+      await requireProtocolAgent(request, taskInput.requesterAgentId);
       result = await protocolMutationLocal(request, 'publish_task', taskInput, async () => ({ task: await createTask(taskInput, { source: ctx.source }) }), 'a2a');
     } else if (data.action === 'task_matches') result = { matches: matches(data.taskId) };
     else if (data.action === 'get_task') result = { task: getTask(data.taskId) };
@@ -117,7 +115,7 @@ async function callTool(name, args, request, ctx = {}) {
   let value;
   if (['taskbay_discover_agents','relaymarket_discover_agents'].includes(name)) value = { agents: listAgents({ capability: args.capability, protocol: args.protocol, available: args.available === false ? undefined : 'true' }) };
   else if (['taskbay_publish_task','relaymarket_publish_task'].includes(name)) {
-    if (args.requesterAgentId) await requireProtocolAgent(request, args.requesterAgentId);
+    await requireProtocolAgent(request, args.requesterAgentId);
     value = await protocolMutationLocal(request, 'publish_task', args, async () => ({ task: await createTask(args, { source: ctx.source }) }));
   } else if (['taskbay_task_matches','relaymarket_task_matches'].includes(name)) value = { matches: matches(args.taskId) };
   else if (['taskbay_get_task','relaymarket_get_task'].includes(name)) value = { task: getTask(args.taskId) };
@@ -166,6 +164,7 @@ async function protocolMutationLocal(request, operation, args, fn, protocol = 'm
 }
 
 async function requireProtocolAgent(request, claimedAgentId) {
+  if (!claimedAgentId) throw new Error('Requester agent identity required');
   const auth = request.headers.get('authorization') || '';
   const m = auth.match(/^Bearer\s+(.+)$/i);
   const authenticated = await authenticateApiKey(m?.[1]);
@@ -173,7 +172,6 @@ async function requireProtocolAgent(request, claimedAgentId) {
   if (authenticated !== claimedAgentId) throw new Error('API key does not belong to claimed agent');
   return authenticated;
 }
-
 
 async function requireProtocolTaskParticipant(request, taskId) {
   const task=getTask(taskId);
