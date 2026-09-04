@@ -1,4 +1,5 @@
 import app from './index.js';
+import { enforceRequesterOwnership } from './requester-ownership.js';
 
 const INTERNAL_SOURCES = new Set([
   'system',
@@ -13,6 +14,9 @@ const INTERNAL_SOURCES = new Set([
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    const ownershipError = await enforceRequesterOwnership(request, env);
+    if (ownershipError) return ownershipError;
 
     if (request.method === 'GET' && url.pathname === '/api/v1/traffic') {
       if (!env.DB) return json({ error: 'd1_not_bound' }, 503);
