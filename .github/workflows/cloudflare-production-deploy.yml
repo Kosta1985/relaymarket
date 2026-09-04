@@ -39,7 +39,7 @@ jobs:
             echo "Cloudflare deployment credential is configured."
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::TaskBay source is CI-ready but has not been deployed by this workflow because CLOUDFLARE_API_TOKEN is unavailable in repository secrets or the production environment."
+            echo "::error::TaskBay production deployment blocked because CLOUDFLARE_API_TOKEN is unavailable in repository secrets or the production environment."
             {
               echo "## TaskBay deployment readiness"
               echo
@@ -50,6 +50,7 @@ jobs:
               echo "- Reason: CLOUDFLARE_API_TOKEN unavailable"
               echo "- Production state must continue to be verified independently"
             } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
           fi
 
       - name: Checkout tested commit
