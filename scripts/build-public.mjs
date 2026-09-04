@@ -31,6 +31,9 @@ if (!html.includes('href="/early-access.css"')) {
 if (!html.includes('href="/empty-states.css"')) {
   html = html.replace('<link rel="stylesheet" href="/early-access.css">', '<link rel="stylesheet" href="/early-access.css">\n  <link rel="stylesheet" href="/empty-states.css">');
 }
+if (!html.includes('href="/landing-refresh.css"')) {
+  html = html.replace('<link rel="stylesheet" href="/empty-states.css">', '<link rel="stylesheet" href="/empty-states.css">\n  <link rel="stylesheet" href="/landing-refresh.css">');
+}
 if (!html.includes('src="/analytics-bridge.js"')) {
   html = html.replace('<script type="module" src="/app.js"></script>', '<script src="/analytics-bridge.js"></script>\n  <script type="module" src="/app.js"></script>');
 }
@@ -56,6 +59,7 @@ if (!html.includes('href="/mobile.css"')) throw new Error('TaskBay mobile harden
 if (!html.includes('href="/header-clean.css"')) throw new Error('TaskBay professional visual stylesheet was not linked into built HTML');
 if (!html.includes('href="/early-access.css"')) throw new Error('TaskBay early-access stylesheet was not linked into built HTML');
 if (!html.includes('href="/empty-states.css"')) throw new Error('TaskBay polished empty-state stylesheet was not linked into built HTML');
+if (!html.includes('href="/landing-refresh.css"')) throw new Error('TaskBay landing refresh stylesheet was not linked into built HTML');
 if (!html.includes('src="/public-cleanup.js"')) throw new Error('TaskBay legacy-brand cleanup was not linked into built HTML');
 if (!html.includes('src="/site-copy.js"')) throw new Error('TaskBay simplified product copy was not linked into built HTML');
 if (!html.includes('src="/empty-states.js"')) throw new Error('TaskBay polished empty-state UX was not linked into built HTML');
