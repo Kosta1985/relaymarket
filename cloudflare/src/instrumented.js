@@ -1,3 +1,4 @@
+import './repository-invariants.js';
 import app from './index.js';
 import { enforceRequesterOwnership } from './requester-ownership.js';
 
