@@ -8,6 +8,7 @@ const MCP_REQUESTER_TOOLS = new Set([
   'taskbay_create_payment',
   'relaymarket_create_payment'
 ]);
+const MCP_CANCEL_TOOLS = new Set(['taskbay_cancel_task', 'relaymarket_cancel_task']);
 const A2A_REQUESTER_ACTIONS = new Set(['complete_task', 'dispute_task', 'create_payment']);
 
 export async function enforceRequesterOwnership(request, env) {
@@ -33,6 +34,17 @@ export async function enforceRequesterOwnership(request, env) {
     return null;
   }
 
+  const cancel = url.pathname.match(/^\/api\/v1\/tasks\/([^/]+)\/cancel$/);
+  if (cancel) {
+    const body = await readCloneJson(request);
+    if (!body) return null;
+    const actorAgentId = String(body.actorAgentId || '');
+    if (!actorAgentId) return apiError('actor_agent_required', 401, 'Actor identity is required to cancel a task.');
+    const authorization = await inspectCancellation(env.DB, decodeURIComponent(cancel[1]), actorAgentId);
+    if (authorization) return apiError(authorization.code, authorization.status, authorization.message);
+    return null;
+  }
+
   if (url.pathname === '/mcp') {
     const body = await readCloneJson(request);
     if (!body || body.method !== 'tools/call') return null;
@@ -45,6 +57,11 @@ export async function enforceRequesterOwnership(request, env) {
       if (!args.requesterAgentId) return rpcError(body.id ?? null, 'Requester identity is required for this task action.');
       const ownership = await inspectOwnership(env.DB, args.taskId, args.requesterAgentId);
       if (ownership) return rpcError(body.id ?? null, ownership.message);
+    }
+    if (MCP_CANCEL_TOOLS.has(name)) {
+      if (!args.actorAgentId) return rpcError(body.id ?? null, 'Actor identity is required to cancel a task.');
+      const authorization = await inspectCancellation(env.DB, args.taskId, args.actorAgentId);
+      if (authorization) return rpcError(body.id ?? null, authorization.message);
     }
     return null;
   }
@@ -62,6 +79,11 @@ export async function enforceRequesterOwnership(request, env) {
       if (!data.requesterAgentId) return rpcError(body.id ?? null, 'Requester identity is required for this task action.');
       const ownership = await inspectOwnership(env.DB, data.taskId, data.requesterAgentId);
       if (ownership) return rpcError(body.id ?? null, ownership.message);
+    }
+    if (data.action === 'cancel_task') {
+      if (!data.actorAgentId) return rpcError(body.id ?? null, 'Actor identity is required to cancel a task.');
+      const authorization = await inspectCancellation(env.DB, data.taskId, data.actorAgentId);
+      if (authorization) return rpcError(body.id ?? null, authorization.message);
     }
   }
 
@@ -85,6 +107,31 @@ async function inspectOwnership(db, taskId, claimedRequesterId) {
       code: 'requester_mismatch',
       status: 403,
       message: 'The authenticated requester does not own this task.'
+    };
+  }
+  return null;
+}
+
+async function inspectCancellation(db, taskId, actorAgentId) {
+  if (!db || !taskId) return null;
+  const row = await db.prepare('SELECT requester_agent_id, provider_agent_id FROM tasks WHERE id=?').bind(String(taskId)).first();
+  if (!row) return null;
+  const requester = String(row.requester_agent_id || '');
+  const provider = String(row.provider_agent_id || '');
+  const actor = String(actorAgentId || '');
+  if (provider && actor === provider) return null;
+  if (!requester) {
+    return {
+      code: 'task_requester_unbound',
+      status: 409,
+      message: 'This legacy task has no bound requester; only its assigned provider may cancel it.'
+    };
+  }
+  if (actor !== requester) {
+    return {
+      code: 'actor_not_authorized',
+      status: 403,
+      message: 'Only the bound requester or assigned provider may cancel this task.'
     };
   }
   return null;
