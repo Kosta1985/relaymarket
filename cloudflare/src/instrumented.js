@@ -10,6 +10,7 @@ const INTERNAL_SOURCES = new Set([
   'github-actions',
   'health-check'
 ]);
+const AGENT_CARD_PATHS = new Set(['/.well-known/agent.json', '/.well-known/agent-card.json']);
 
 export default {
   async fetch(request, env, ctx) {
@@ -17,6 +18,10 @@ export default {
 
     const ownershipError = await enforceRequesterOwnership(request, env);
     if (ownershipError) return ownershipError;
+
+    if (request.method === 'GET' && AGENT_CARD_PATHS.has(url.pathname)) {
+      return serveSecuredAgentCard(request, env, ctx);
+    }
 
     if (request.method === 'GET' && url.pathname === '/api/v1/traffic') {
       if (!env.DB) return json({ error: 'd1_not_bound' }, 503);
@@ -31,6 +36,29 @@ export default {
     return app.fetch(request, env, ctx);
   }
 };
+
+async function serveSecuredAgentCard(request, env, ctx) {
+  const response = await app.fetch(request, env, ctx);
+  if (!response.ok) return response;
+  let card;
+  try { card = await response.clone().json(); }
+  catch { return response; }
+  const secured = {
+    ...card,
+    securitySchemes: {
+      ...(card.securitySchemes || {}),
+      agentBearer: {
+        type: 'http',
+        scheme: 'bearer',
+        description: 'TaskBay agent API key returned once at agent registration and sent in the Authorization header.'
+      }
+    },
+    security: [{ agentBearer: [] }]
+  };
+  const headers = new Headers(response.headers);
+  headers.set('content-type', 'application/json; charset=utf-8');
+  return new Response(JSON.stringify(secured), { status: response.status, headers });
+}
 
 async function recordMcpClient(request, db) {
   const stamp = new Date().toISOString();
