@@ -193,14 +193,19 @@ function renderTasks(rows) {
   root.innerHTML = rows.map(task => {
     const requesterKey=Boolean(task.requesterAgentId&&credentials[task.requesterAgentId]);
     const providerKey=Boolean(task.providerAgentId&&credentials[task.providerAgentId]);
+    const selectedProviderKey=Boolean(task.selectedProviderAgentId&&credentials[task.selectedProviderAgentId]);
     const criteria=(task.acceptanceCriteria||[]).length?`<div class="task-criteria"><strong>Acceptance criteria</strong><ul>${task.acceptanceCriteria.map(item=>`<li>${esc(item)}</li>`).join('')}</ul></div>`:'';
     const revision=task.revisionCount?`<div class="task-revision"><strong>Revision ${esc(task.revisionCount)}</strong>${task.lastRevisionNote?`<span>${esc(task.lastRevisionNote)}</span>`:''}</div>`:'';
     const actions=[];
-    if(task.status==='open')actions.push(`<button class="button secondary match-button" data-task-id="${escAttr(task.id)}" type="button">Find agents -></button>`);
+    if(task.status==='open'){
+      if(task.selectedProviderAgentId&&selectedProviderKey)actions.push(`<button class="button primary task-action-button" data-action="accept" data-task-id="${escAttr(task.id)}" type="button">Accept selected task</button>`);
+      actions.push(`<button class="button secondary match-button" data-task-id="${escAttr(task.id)}" type="button">${task.selectedProviderAgentId?'Review matches':'Find agents ->'}</button>`);
+    }
     if(task.status==='accepted'&&providerKey)actions.push(`<button class="button primary task-action-button" data-action="start" data-task-id="${escAttr(task.id)}" type="button">Start work</button>`);
     if(task.status==='working'&&providerKey)actions.push(`<button class="button primary task-action-button" data-action="deliver" data-task-id="${escAttr(task.id)}" type="button">${task.revisionCount?'Redeliver':'Deliver work'}</button>`);
     if(task.status==='delivered'&&requesterKey){actions.push(`<button class="button ghost task-action-button" data-action="revise" data-task-id="${escAttr(task.id)}" type="button">Request revision</button>`);actions.push(`<button class="button primary task-action-button" data-action="complete" data-task-id="${escAttr(task.id)}" type="button">Complete task</button>`);}
     const providerLabel=task.providerAgentId?`provider ${esc(shortId(task.providerAgentId))}`:task.selectedProviderAgentId?`selected ${esc(shortId(task.selectedProviderAgentId))}`:'capability matching';
+    const nextStep=task.status==='open'&&task.selectedProviderAgentId?(selectedProviderKey?'selected for this browser - accept to begin':'waiting for selected provider to accept'):task.status==='open'?'find and select a provider':task.status==='accepted'?'provider can start work':task.status==='working'?'provider prepares delivery':task.status==='delivered'?'requester reviews delivery':task.status==='completed'?'work completed':task.status==='disputed'?'dispute under review':task.status==='cancelled'?'task closed':'follow task state';
     return `<article class="task-card">
       <div>
         <div class="task-topline"><span class="status-pill ${esc(task.status)}">${esc(task.status)}</span><span class="task-time">${esc(timeAgo(task.createdAt))}</span>${task.budget != null ? `<span class="task-time">${esc(task.currency)} ${esc(task.budget)}</span>` : ''}</div>
@@ -208,7 +213,7 @@ function renderTasks(rows) {
         ${criteria}${revision}
         <div class="tags">${(task.requiredCapabilities || []).map(x => `<span class="tag">${esc(x)}</span>`).join('')}${(task.preferredProtocols || []).map(x => `<span class="tag protocol">${esc(x)}</span>`).join('')}</div>
       </div>
-      <div class="task-side"><span class="task-score-hint">${providerLabel}</span><div class="task-actions">${actions.join('')}</div></div>
+      <div class="task-side"><span class="task-score-hint">${providerLabel}<br>${esc(nextStep)}</span><div class="task-actions">${actions.join('')}</div></div>
     </article>`;
   }).join('');
   root.querySelectorAll('.match-button').forEach(button => button.addEventListener('click', () => showMatches(button.dataset.taskId)));
@@ -220,7 +225,11 @@ async function runTaskAction(taskId,action,button){
   const credentials=sessionCredentials();
   const original=button?.textContent;if(button){button.disabled=true;button.textContent='Working...';}
   try{
-    if(action==='start'){
+    if(action==='accept'){
+      const providerAgentId=task.selectedProviderAgentId;const apiKey=providerAgentId?credentials[providerAgentId]:null;if(!providerAgentId||!apiKey)throw new Error('Selected provider credential is required to accept this task.');
+      await mutation(`/api/v1/tasks/${encodeURIComponent(taskId)}/accept`,{providerAgentId},{apiKey});
+      showToast('Selected provider accepted the task.');
+    }else if(action==='start'){
       const apiKey=task.providerAgentId?credentials[task.providerAgentId]:null;if(!apiKey)throw new Error('Provider credential is required to start work.');
       await mutation(`/api/v1/tasks/${encodeURIComponent(taskId)}/start`,{providerAgentId:task.providerAgentId},{apiKey});
       showToast('Task moved to working.');
