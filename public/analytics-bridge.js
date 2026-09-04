@@ -15,7 +15,8 @@
   const incoming = sanitizeSource(params.get('source'));
   let stored = '';
   try { stored = sanitizeSource(sessionStorage.getItem(SOURCE_KEY)); } catch { /* storage may be unavailable */ }
-  const marketSource = incoming || stored || 'web-portal';
+  const referralSource = sanitizeSource(window.TaskBayReferral?.source);
+  const marketSource = referralSource || incoming || stored || 'web-portal';
   try { sessionStorage.setItem(SOURCE_KEY, marketSource); } catch { /* fail open */ }
 
   const nativeFetch = window.fetch.bind(window);

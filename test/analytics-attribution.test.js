@@ -19,6 +19,11 @@ test('marketplace bridge persists and applies acquisition source to API calls', 
   assert.match(bridge, /'web-portal'/);
 });
 
+test('marketplace bridge preserves referral attribution ahead of generic source and stored fallback', () => {
+  assert.match(bridge, /const referralSource = sanitizeSource\(window\.TaskBayReferral\?\.source\)/);
+  assert.match(bridge, /const marketSource = referralSource \|\| incoming \|\| stored \|\| 'web-portal'/);
+});
+
 test('marketplace bridge reads launch KPIs and exposes source-attributed funnel counts', () => {
   assert.match(bridge, /\/api\/v1\/kpis/);
   assert.match(bridge, /contractVersion !== 'launch-v1'/);
